@@ -1,0 +1,23 @@
+name: Core checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  geometry:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements-core.txt
+      - run: python -m pip install -r requirements-core.txt
+      - run: bash scripts/test_core.sh
+      - run: python examples/narrow_passage.py

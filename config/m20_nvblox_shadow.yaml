@@ -1,0 +1,56 @@
+nvblox_node:
+  ros__parameters:
+    global_frame: map
+    pose_frame: base_link
+    use_tf_transforms: true
+    mapping_type: static_tsdf
+    voxel_size: 0.15
+    esdf_mode: 2d
+    use_lidar: true
+    lidar_width: 1800
+    lidar_height: 192
+    use_non_equal_vertical_fov_lidar_params: true
+    # Measured from live AIRY fused NX cloud: elevation about -51.8 to +64.3 deg.
+    min_angle_below_zero_elevation_rad: 1.0
+    max_angle_above_zero_elevation_rad: 1.2
+    lidar_min_valid_range_m: 0.30
+    lidar_max_valid_range_m: 18.0
+    integrate_lidar_rate_hz: 10.0
+    update_esdf_rate_hz: 5.0
+    # Mesh is the input to the local SE(2) result path; allow the sensor graph
+    # to publish at the 10 Hz acceptance target when compute keeps up.
+    update_mesh_rate_hz: 10.0
+    # nvblox 3.2.x actually generates and streams Mesh from publishLayers().
+    # update_mesh_rate_hz alone does not control this path.
+    publish_layer_rate_hz: 12.0
+    map_clearing_radius_m: 10.0
+    # Mesh is also a terrain input. The default world-Z ceiling (2 m) hides
+    # upper floors. A nonpositive limit disables the Mesh streamer height cut.
+    layer_visualization_exclusion_height_m: 0.0
+    use_lidar_motion_compensation: true
+    pointcloud2_timestamps_are_relative: false
+    static_mapper:
+      projective_integrator_max_integration_distance_m: 10.0
+      workspace_bounds_type: height_bounds
+      workspace_bounds_min_height_m: -0.8
+      workspace_bounds_max_height_m: 1.5
+      esdf_integrator_max_distance_m: 1.5
+      esdf_slice_height: 0.0
+      esdf_slice_min_height: -0.2
+      esdf_slice_max_height: 0.5
+
+se2_nvblox_surface_adapter:
+  ros__parameters:
+    mesh_topic: /nvblox_node/mesh
+    esdf_topic: /nvblox_node/static_map_slice
+    odom_topic: /lio/odom
+    output_frame: map
+    window_radius_m: 10.0
+    surface_resolution_m: 0.15
+    yaw_bins: 24
+    max_slope_deg: 30.0
+    support_ratio_min: 0.70
+    max_footprint_height_range_m: 0.15
+    footprint_length_m: 0.82
+    footprint_width_m: 0.506
+    extra_clearance_m: 0.10

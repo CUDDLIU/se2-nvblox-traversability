@@ -1,0 +1,32 @@
+se2_terrain_check:
+  ros__parameters:
+    output_frame: nvblox_odom
+    mesh_topic: /nvblox_node/mesh
+    odom_topic: /nvblox_lio/odom
+    # Confirmed complete body envelope, including moving legs and payload.
+    length: 0.82
+    width: 0.506
+    height: 0.90
+    side_margin: 0.08
+    top_margin: 0.10
+    # Flat-ground operation; stair gait has not been enabled.
+    max_slope_deg: 15.0
+    max_step: 0.03
+    resolution: 0.10
+    # Fine vertical voxel spacing preserves the configured 3 cm step bound.
+    vertical_resolution: 0.01
+    tile_cells: 16
+    slab_cells: 80
+    yaw_bins: 40
+    sweep_sample_deg: 1.0
+    update_period_s: 0.02
+    max_slabs_per_tick: 4
+    compute_budget_ms: 35.0
+    max_update_blocks: 128
+    global_period_s: 1.0
+    max_inbox_blocks: 20000
+    input_timeout_s: 5.0
+    publish_debug_intervals: false
+    publish_rejected_cells: false
+    debug_interval_height_m: 3.0
+    output_json: /home/nvidia/scanplanner_test/se2_terrain_check/output/latest_navmesh.json

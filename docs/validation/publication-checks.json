@@ -1,0 +1,40 @@
+{
+  "date": "2026-09-30",
+  "scope": "CPU checks of publication checkout; does not rerun field bag validation",
+  "system": "Linux",
+  "machine": "x86_64",
+  "python": "3.12.3",
+  "packages": {
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "shapely": "2.1.2",
+    "PyYAML": "6.0.3"
+  },
+  "checks": {
+    "native_core_build": "PASS",
+    "geometry_graph_display_window_floors": {
+      "tests": 21,
+      "result": "PASS"
+    },
+    "bag_management": {
+      "tests": 44,
+      "result": "PASS"
+    },
+    "kinematics": {
+      "tests": 3,
+      "result": "PASS"
+    },
+    "narrow_passage_example": "PASS",
+    "python_syntax": "PASS",
+    "shell_syntax": "PASS",
+    "local_markdown_links": "PASS",
+    "deployed_validation_source_digests": "MATCH"
+  },
+  "example_heading_degrees": {
+    "0.500m": "blocked",
+    "0.506m": 0.0,
+    "0.540m": 8.087,
+    "0.600m": 18.0,
+    "0.750m": 57.656
+  }
+}

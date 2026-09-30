@@ -1,0 +1,11 @@
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.mp4 binary
+*.gif binary
+*.png binary
+*.STL binary
+# Preserve vendored source bytes and their upstream whitespace conventions.
+robot_model/upstream/** -text -whitespace
+terrain_variants/multi_lidar/reference/** -text -whitespace
+terrain_variants/weighting/weighting_function_impl.h -text -whitespace

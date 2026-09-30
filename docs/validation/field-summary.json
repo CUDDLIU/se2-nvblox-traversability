@@ -1,0 +1,173 @@
+{
+  "date": "2026-09-29",
+  "run_id": "20260929_190422_lidar_3bad8",
+  "bag_id": "20260929_155717_4a77a9",
+  "hardware": "Jetson Orin NX 16 GB",
+  "input_mode": "lidar",
+  "rate": 1.0,
+  "scope": "Aggregate historical evidence; raw bags and scene trajectories are not distributed.",
+  "run_completed": true,
+  "performance_target_met": false,
+  "connectivity_verified": false,
+  "stair_connectivity_verified": false,
+  "bag_elapsed_s": 326.6281042098999,
+  "distinct_geometry_hz": 12.421472386174718,
+  "distinct_result_sequence_hz": 1.92580967227515,
+  "complete_input_result_hz": 0.0,
+  "latency_oldest_ms": {
+    "n": 620,
+    "p50": 939.6014619997004,
+    "p95": 1425.420265199682,
+    "p99": 1561.8971735578446,
+    "maximum": 1769.133588000841
+  },
+  "latency_newest_ms": {
+    "n": 620,
+    "p50": 524.0106199998991,
+    "p95": 769.031798949072,
+    "p99": 872.5349034492319,
+    "maximum": 949.5341040019412
+  },
+  "callback_ms": {
+    "n": 620,
+    "p50": 454.95500049946713,
+    "p95": 694.4134614026551,
+    "p99": 810.9190488213783,
+    "maximum": 866.7034780009999
+  },
+  "pending_slabs": {
+    "n": 660,
+    "p50": 0.0,
+    "p95": 0.0,
+    "p99": 0.0,
+    "maximum": 0.0
+  },
+  "sensor_ingestion": {
+    "ros/pointcloud_callback": 3264,
+    "ros/lidar": 3264,
+    "ros/lidar/integration": 3264,
+    "raw_lidar_messages_in_full_bag": 3266,
+    "raw_depth_messages_in_full_bag": 4800,
+    "deskew_final": {
+      "received": 3266.0,
+      "frames": 3264.0,
+      "dropped": 2.0,
+      "invalid_points": 0.0,
+      "pending": 0.0,
+      "mean_compute_ms": 5.709,
+      "max_compute_ms": 53.18,
+      "max_correction_m": 3.8701,
+      "clock_restored": 0.0,
+      "clock_plain": 0.0,
+      "clock_uncertain": 0.0
+    }
+  },
+  "latency_scope": "robot-centered local window; outside retained as historical",
+  "effective_tsdf_weighting": {
+    "camera": "kInverseSquareWeight",
+    "lidar": "kInverseSquareWeight"
+  },
+  "config": {
+    "resolution": 0.1,
+    "vertical_resolution": 0.01,
+    "tile_cells": 8,
+    "slab_cells": 80,
+    "length": 0.82,
+    "width": 0.506,
+    "height": 0.9,
+    "side_margin": 0.08,
+    "top_margin": 0.1,
+    "max_slope_deg": 40.0,
+    "max_step": 0.2,
+    "yaw_bins": 40,
+    "sweep_sample_deg": 1.0,
+    "stair_riser_filter": true,
+    "surface_normal_filter": true
+  },
+  "errors": {
+    "compute_error": "",
+    "input_error": "",
+    "export_error": ""
+  },
+  "doorway_snapshot_checks": [
+    {
+      "frame": 75,
+      "connected": true,
+      "nodes": 6382,
+      "edges": 20898,
+      "refined_edges_checked": 22884
+    },
+    {
+      "frame": 85,
+      "connected": true,
+      "nodes": 17560,
+      "edges": 62468,
+      "refined_edges_checked": 56278
+    },
+    {
+      "frame": 90,
+      "connected": true,
+      "nodes": 19018,
+      "edges": 67694,
+      "refined_edges_checked": 60180
+    }
+  ],
+  "gui_display_probe": {
+    "amber_cells": 352,
+    "distinct_orange_colors": 218,
+    "darkest": [
+      0.64,
+      0.16,
+      0.015,
+      0.94
+    ],
+    "lightest": [
+      1.0,
+      0.72,
+      0.12,
+      0.94
+    ],
+    "status": {
+      "compute_error": "",
+      "input_error": "",
+      "export_error": "",
+      "local_events": 70,
+      "pending_slabs": 0,
+      "latency_ms": 681.7844670003979
+    },
+    "config": {
+      "resolution": 0.1,
+      "vertical_resolution": 0.01,
+      "tile_cells": 8,
+      "slab_cells": 80,
+      "length": 0.82,
+      "width": 0.506,
+      "height": 0.9,
+      "side_margin": 0.08,
+      "top_margin": 0.1,
+      "max_slope_deg": 40.0,
+      "max_step": 0.2,
+      "yaw_bins": 40,
+      "sweep_sample_deg": 1.0,
+      "stair_riser_filter": true,
+      "surface_normal_filter": true
+    },
+    "result": "PASS"
+  },
+  "source_sha256": {
+    "angular_display.py": "d8afdd93a2f2549af695dd3680228c0b1ecac802d31e3ffc84d21cc1bf23846f",
+    "global_export.py": "d5053cb3ddfaf2aeebbfb08fa0282f645350bf8ee31434e52a28535fc55a76d0",
+    "local_display.py": "f2d6f3ece3ffc8e10c4c9a3e717e34c0d3c1b017c60df21c0be45864dfaedf93",
+    "local_updates.py": "ea42ed8805f0fd79a0364fa61fc30e29472fc2421f29a7cb5f14b4c8c228bb71",
+    "marker_wire.py": "ee77140685bba1852072ccc9d47f775900fdb664f65b733361c68f4f5e949dd9",
+    "native_bvh.cpp": "2bcf01843e41b4b9a91c3146f7f0b48359104bf84dea2bcbe0768db59d4ce89b",
+    "native_nav.py": "f88fb05d234e4f3728da9cc86bb8c2cd95a0b25f8e2e7c749ad57e3945d866ea",
+    "paper_pipeline.py": "25f76ae0fee72e74061a618b843e6f783eb946056e7475eecc8b2acddcc6a4aa",
+    "pose_clearance.hpp": "2a91541fa07f5bfe4b4546f232fc78c61574aced4862f9f145fd8c8b87c49216",
+    "pose_graph.py": "9bc2774c89db4d018ba3bf5ee83b31f053787886fb2e9312c973d3e4de207d9a",
+    "realtime_node.py": "98e2dd1c0c664cd133570a99629002268f1d74c72ad22a55f12ab0fede7ec72f",
+    "test_angular_display.py": "7f79db67e257bdee6733b71ee2d799540793fc1949885732ef72719ca0356e4e",
+    "test_physical_clearance.py": "5e5886ff754d01ebcaeee1ba51d34a4ea607ca9e5b01a47f797c935ef5f65e28",
+    "test_pose_graph.py": "894af881c73a30ccd8c95ee97063f49e9054a92fd2c4269c51c07185619288b2"
+  }
+}

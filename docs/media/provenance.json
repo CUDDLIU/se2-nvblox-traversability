@@ -1,0 +1,34 @@
+{
+  "recorded_on": "2026-09-30",
+  "source_name": "录屏 2026-09-30 12-10-13.webm",
+  "source_sha256": "1e11e444c14278e514f832d43e3568801629c49eb9e0d6bbf1a49a041fbf22ff",
+  "source_duration_s": 235.914516,
+  "full_video": {
+    "file": "demo-full.mp4",
+    "codec": "H.264",
+    "duration_s": 235.9,
+    "fps": 20,
+    "size_bytes": 12793924,
+    "transform": "Complete recording, no temporal cuts; 1172x850, CRF 25, yuv420p, faststart."
+  },
+  "preview": {
+    "file": "demo-preview.gif",
+    "segments_source_seconds": [
+      [
+        12,
+        20
+      ],
+      [
+        104,
+        112
+      ]
+    ],
+    "playback_speed": 1.0,
+    "fps": 8,
+    "width": 800
+  },
+  "stills": {
+    "demo-frame.png": 20,
+    "stairs-frame.png": 105
+  }
+}

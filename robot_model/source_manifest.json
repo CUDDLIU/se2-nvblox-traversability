@@ -1,0 +1,101 @@
+{
+  "repository": "https://github.com/DeepRoboticsLab/deep_robotics_model",
+  "commit": "75824b516ecc8fa3f8f7ce5d6577e1e86d6b614f",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "bytes": 1502,
+      "sha256": "6bc5967b1cfbdb83b0798942a5f11d4e0555ad8de17697bd4d7eaab6e22f9be5"
+    },
+    {
+      "path": "M20/urdf/M20.urdf",
+      "bytes": 23054,
+      "sha256": "1643c65b3992afc2298ce7bfe7c5498cd784243bb791c9b3aa4c74b689efcfa7"
+    },
+    {
+      "path": "M20/urdf/meshes/base_link.STL",
+      "bytes": 1340484,
+      "sha256": "a7984137d06782f513858fd699111109978301a9dff53ff37abf5413b922247f"
+    },
+    {
+      "path": "M20/urdf/meshes/fl_hipx.STL",
+      "bytes": 455384,
+      "sha256": "179c634929072ae0ccf1dcdab1b005ac49b54e3225e78377afcff65951841aeb"
+    },
+    {
+      "path": "M20/urdf/meshes/fl_hipy.STL",
+      "bytes": 905234,
+      "sha256": "c895052a02ccbb21111815a20676a8dbef82aca62edf4cb0289afc68d54034ef"
+    },
+    {
+      "path": "M20/urdf/meshes/fl_knee.STL",
+      "bytes": 697884,
+      "sha256": "c2ac2f2c9664d847646efed234f35f47c30b28f35083abb470193eb0535c3154"
+    },
+    {
+      "path": "M20/urdf/meshes/fl_wheel.STL",
+      "bytes": 624534,
+      "sha256": "bcfca68aeeb8e5f118d4623a384cb040f611c32c1115b8574aed4c546e64685d"
+    },
+    {
+      "path": "M20/urdf/meshes/fr_hipx.STL",
+      "bytes": 421084,
+      "sha256": "350a5bca1df65250de995636583a5415d24625add5a5da447e9a09fb4661540b"
+    },
+    {
+      "path": "M20/urdf/meshes/fr_hipy.STL",
+      "bytes": 884834,
+      "sha256": "6a776a1637c7676a3220aa51df6f2a59ebb7b8a94da10305940653902116e9ee"
+    },
+    {
+      "path": "M20/urdf/meshes/fr_knee.STL",
+      "bytes": 694634,
+      "sha256": "e158a0ca5a5ef08862714d546576d23706b096576a3e20e3d7a88184d72e4743"
+    },
+    {
+      "path": "M20/urdf/meshes/fr_wheel.STL",
+      "bytes": 624534,
+      "sha256": "2773ffcac685b1e288b09d13b80991987d722f386a645cd99b88de01eb02706b"
+    },
+    {
+      "path": "M20/urdf/meshes/hl_hipx.STL",
+      "bytes": 421034,
+      "sha256": "3c20e792611b5142b4237f381a300079bb3d5d71e59c0d0a38335ff67988cf3a"
+    },
+    {
+      "path": "M20/urdf/meshes/hl_hipy.STL",
+      "bytes": 884884,
+      "sha256": "d2c9efec9bfc31fef034617879fab4b731ac22d67a8f1d5f89ba4ca6d3a375ac"
+    },
+    {
+      "path": "M20/urdf/meshes/hl_knee.STL",
+      "bytes": 694634,
+      "sha256": "f6897fb23e4f1fe0943952f36f756d93ef6de88f48ac1ede294a7ca852ab82a1"
+    },
+    {
+      "path": "M20/urdf/meshes/hl_wheel.STL",
+      "bytes": 624534,
+      "sha256": "d61d98f986e989484d37ac15700f43c409b1205ff649b4ba14f6ac3ee0f7e7c2"
+    },
+    {
+      "path": "M20/urdf/meshes/hr_hipx.STL",
+      "bytes": 421534,
+      "sha256": "b49f8992cc84058e6009b804e4d68137059636175c5ba32816d36611d5b5b98a"
+    },
+    {
+      "path": "M20/urdf/meshes/hr_hipy.STL",
+      "bytes": 918834,
+      "sha256": "70332110c7bc92d4498834cb37260c32de3e2d4b44e821bcf14a71ddf73d3e72"
+    },
+    {
+      "path": "M20/urdf/meshes/hr_knee.STL",
+      "bytes": 694784,
+      "sha256": "2fcf688c30596b3640e528defa92b58fe7804586586a681677115ea6d93f60e3"
+    },
+    {
+      "path": "M20/urdf/meshes/hr_wheel.STL",
+      "bytes": 624484,
+      "sha256": "88b2fca83119f36b156520ae4c7a4334baa6a2ad71da90e1a529e10114a16641"
+    }
+  ]
+}

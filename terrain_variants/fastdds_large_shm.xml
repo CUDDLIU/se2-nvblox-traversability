@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Replay participants on this host only. Each PointCloud2 is several MiB. -->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>terrain_replay_large_shm</transport_id>
+      <type>SHM</type>
+      <segment_size>67108864</segment_size>
+      <maxMessageSize>8388608</maxMessageSize>
+      <port_queue_capacity>512</port_queue_capacity>
+    </transport_descriptor>
+  </transport_descriptors>
+  <participant profile_name="terrain_replay_large_shm" is_default_profile="true">
+    <rtps>
+      <useBuiltinTransports>false</useBuiltinTransports>
+      <userTransports><transport_id>terrain_replay_large_shm</transport_id></userTransports>
+    </rtps>
+  </participant>
+</profiles>

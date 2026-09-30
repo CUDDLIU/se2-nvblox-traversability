@@ -1,0 +1,88 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 32; 34; 38
+    Fixed Frame: odom
+    Frame Rate: 15
+  Displays:
+    - Class: rviz_default_plugins/PointCloud2
+      Name: nvblox input cloud (Z rainbow, cropped)
+      Enabled: true
+      Topic:
+        Value: /se2_nvblox/lidar_points_cropped
+        Reliability Policy: Reliable
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 1
+      Position Transformer: XYZ
+      Color Transformer: AxisColor
+      Axis: Z
+      Use Fixed Frame: true
+      Autocompute Value Bounds:
+        Value: true
+      Invert Rainbow: false
+      Style: Points
+      Size (Pixels): 3
+      Size (m): 0.02
+      Alpha: 0.95
+      Decay Time: 0
+      Selectable: true
+    - Class: rviz_default_plugins/Grid
+      Name: Reference grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 40
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Support evidence (cyan, NOT certified traversable)
+      Enabled: true
+      Topic:
+        Value: /se2_nvblox_surface_adapter/surface_markers
+        Reliability Policy: Reliable
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Sampled yaw footprints (green, shadow only)
+      Enabled: true
+      Topic:
+        Value: /se2_nvblox_surface_adapter/yaw_footprint_shadow
+        Reliability Policy: Reliable
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/Map
+      Name: Support mask (100 means evidence, NOT obstacle map)
+      Enabled: false
+      Alpha: 0.5
+      Topic:
+        Value: /se2_nvblox_surface_adapter/surface_grid
+        Reliability Policy: Reliable
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/TF
+      Name: TF (optional)
+      Enabled: false
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 18
+      Pitch: 0.8
+      Yaw: 0.8
+      Target Frame: odom
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+Window Geometry:
+  Width: 1280
+  Height: 800

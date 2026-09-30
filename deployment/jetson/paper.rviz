@@ -1,0 +1,95 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Enabled: true
+  Value: true
+  Global Options:
+    Background Color: 32; 34; 38
+    Fixed Frame: nvblox_odom
+    Frame Rate: 15
+  Displays:
+    - Class: nvblox_rviz_plugin/NvbloxMesh
+      Name: Input nvblox Marching Cubes mesh
+      Enabled: true
+      Value: true
+      Cut Ceiling: false
+      Ceiling Height: 2
+      Topic:
+        Value: /nvblox/height_mesh
+        Reliability Policy: Reliable
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 5
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Latest per-tile result - history retained (green all yaw, amber restricted)
+      Enabled: true
+      Topic:
+        Value: /se2_navmesh/local_display
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Current-input validity (blue means pending or stale)
+      Enabled: false
+      Topic:
+        Value: /se2_navmesh/local_validity_display
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Global polygons - only complete revisions (optional)
+      Enabled: false
+      Topic:
+        Value: /se2_navmesh/completed_markers
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Debug occupied vertical intervals
+      Enabled: false
+      Topic:
+        Value: /se2_navmesh/solid_intervals
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Debug free vertical intervals
+      Enabled: false
+      Topic:
+        Value: /se2_navmesh/free_intervals
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/Grid
+      Name: Reference grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 20
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Near Clip Distance: 0.01
+      Distance: 7
+      Pitch: 0.7
+      Yaw: 3.14
+      Target Frame: <Fixed Frame>
+      Focal Point:
+        X: 2
+        Y: 0
+        Z: 0
+Window Geometry:
+  Width: 1280
+  Height: 800

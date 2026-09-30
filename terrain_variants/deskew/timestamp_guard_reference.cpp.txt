@@ -1,0 +1,228 @@
+#include <algorithm>
+#include <arpa/inet.h>
+#include <atomic>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <dlfcn.h>
+#include <iostream>
+#include <limits>
+#include <mutex>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include <dridl/sensor_msgs/msg/PointCloud2.h>
+
+namespace {
+
+using PointCloud2 = sensor_msgs::msg::PointCloud2;
+using WriteFunction = bool (*)(void*, const PointCloud2*);
+
+constexpr char kWriteSymbol[] =
+    "_ZN12DrDDSChannelIN11sensor_msgs3msg21PointCloud2PubSubTypeEE5WriteEPKNS1_11PointCloud2E";
+constexpr double kFramePeriod = 0.1;
+constexpr double kMinimumFrameAdvance = 0.05;
+constexpr double kDuplicateEndAdvance = 0.01;
+
+std::mutex state_mutex;
+double last_frame_start = -std::numeric_limits<double>::infinity();
+double last_frame_end = -std::numeric_limits<double>::infinity();
+std::atomic<std::uint64_t> corrected_frames{0};
+std::atomic<std::uint64_t> dropped_frames{0};
+
+class TelemetrySender {
+ public:
+  TelemetrySender() {
+    const char* host = std::getenv("M20_LIDAR_TELEMETRY_HOST");
+    if (host == nullptr || *host == '\0') {
+      return;
+    }
+    long port = 42121;
+    if (const char* value = std::getenv("M20_LIDAR_TELEMETRY_PORT")) {
+      char* end = nullptr;
+      const long parsed = std::strtol(value, &end, 10);
+      if (end != value && *end == '\0' && parsed > 0 && parsed <= 65535) {
+        port = parsed;
+      }
+    }
+    socket_ = ::socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if (socket_ < 0) {
+      std::cerr << "[m20-lidar-guard] telemetry socket creation failed" << std::endl;
+      return;
+    }
+    destination_.sin_family = AF_INET;
+    destination_.sin_port = htons(static_cast<std::uint16_t>(port));
+    if (::inet_pton(AF_INET, host, &destination_.sin_addr) != 1) {
+      std::cerr << "[m20-lidar-guard] invalid telemetry IPv4 address: " << host
+                << std::endl;
+      ::close(socket_);
+      socket_ = -1;
+      return;
+    }
+    std::cerr << "[m20-lidar-guard] telemetry target=" << host << ':' << port
+              << std::endl;
+  }
+
+  ~TelemetrySender() {
+    if (socket_ >= 0) {
+      ::close(socket_);
+    }
+  }
+
+  void send(const PointCloud2& cloud) const {
+    if (socket_ < 0) {
+      return;
+    }
+    char payload[192];
+    const int length = std::snprintf(
+        payload, sizeof(payload), "M20L1 %d %u %zu %u %u %llu %llu",
+        cloud.header().stamp().sec(), cloud.header().stamp().nanosec(),
+        cloud.data().size(), cloud.width(), cloud.height(),
+        static_cast<unsigned long long>(corrected_frames.load(std::memory_order_relaxed)),
+        static_cast<unsigned long long>(dropped_frames.load(std::memory_order_relaxed)));
+    if (length <= 0 || static_cast<std::size_t>(length) >= sizeof(payload)) {
+      return;
+    }
+    ::sendto(socket_, payload, static_cast<std::size_t>(length), MSG_DONTWAIT,
+             reinterpret_cast<const sockaddr*>(&destination_), sizeof(destination_));
+  }
+
+ private:
+  int socket_ = -1;
+  sockaddr_in destination_{};
+};
+
+TelemetrySender& telemetry_sender() {
+  static TelemetrySender sender;
+  return sender;
+}
+
+WriteFunction resolve_original() {
+  static WriteFunction function = [] {
+    dlerror();
+    void* symbol = dlsym(RTLD_NEXT, kWriteSymbol);
+    const char* error = dlerror();
+    if (error != nullptr || symbol == nullptr) {
+      std::cerr << "[m20-lidar-guard] cannot resolve original Write: "
+                << (error == nullptr ? "unknown error" : error) << std::endl;
+      std::abort();
+    }
+    return reinterpret_cast<WriteFunction>(symbol);
+  }();
+  return function;
+}
+
+void set_header_stamp(PointCloud2& cloud, double stamp) {
+  const std::int64_t nanoseconds = static_cast<std::int64_t>(std::llround(stamp * 1e9));
+  cloud.header().stamp().sec(static_cast<std::int32_t>(nanoseconds / 1000000000LL));
+  cloud.header().stamp().nanosec(static_cast<std::uint32_t>(nanoseconds % 1000000000LL));
+}
+
+bool sanitize(PointCloud2& cloud) {
+  if (cloud.is_bigendian() || cloud.point_step() == 0) {
+    return true;
+  }
+
+  std::uint32_t timestamp_offset = 0;
+  bool timestamp_found = false;
+  for (const auto& field : cloud.fields()) {
+    if (field.name() == "timestamp" && field.datatype() == 8 && field.count() == 1) {
+      timestamp_offset = field.offset();
+      timestamp_found = true;
+      break;
+    }
+  }
+  if (!timestamp_found || timestamp_offset + sizeof(double) > cloud.point_step()) {
+    return true;
+  }
+
+  const std::size_t point_count = static_cast<std::size_t>(cloud.width()) * cloud.height();
+  auto& data = cloud.data();
+  if (point_count == 0 || point_count > data.size() / cloud.point_step()) {
+    return true;
+  }
+
+  double minimum = std::numeric_limits<double>::infinity();
+  double maximum = -std::numeric_limits<double>::infinity();
+  for (std::size_t index = 0; index < point_count; ++index) {
+    double timestamp = 0.0;
+    std::memcpy(&timestamp, data.data() + index * cloud.point_step() + timestamp_offset,
+                sizeof(timestamp));
+    minimum = std::min(minimum, timestamp);
+    maximum = std::max(maximum, timestamp);
+  }
+  if (!std::isfinite(minimum) || !std::isfinite(maximum) || maximum <= minimum) {
+    return true;
+  }
+
+  std::lock_guard<std::mutex> lock(state_mutex);
+  if (!std::isfinite(last_frame_start)) {
+    last_frame_start = minimum;
+    last_frame_end = maximum;
+    return true;
+  }
+
+  const double start_advance = minimum - last_frame_start;
+  if (start_advance >= kMinimumFrameAdvance) {
+    last_frame_start = minimum;
+    last_frame_end = maximum;
+    return true;
+  }
+
+  if (maximum - last_frame_end < kDuplicateEndAdvance) {
+    const auto count = ++dropped_frames;
+    if (count == 1 || count % 100 == 0) {
+      std::cerr << "[m20-lidar-guard] dropped duplicate frame count=" << count << std::endl;
+    }
+    return false;
+  }
+
+  // The vendor fusion occasionally emits a one-LiDAR frame followed by a
+  // rolling two-period frame with the same start time. Map that rolling window
+  // onto the current 100 ms frame. This keeps every point, preserves ordering,
+  // anchors the end to the original PTP timestamp, and restores a monotonic
+  // 10 Hz frame clock for downstream LiDAR-inertial estimation.
+  const double desired_start = maximum - kFramePeriod;
+  const double source_span = maximum - minimum;
+  const double scale = kFramePeriod / source_span;
+  for (std::size_t index = 0; index < point_count; ++index) {
+    std::uint8_t* location = data.data() + index * cloud.point_step() + timestamp_offset;
+    double timestamp = 0.0;
+    std::memcpy(&timestamp, location, sizeof(timestamp));
+    timestamp = desired_start + (timestamp - minimum) * scale;
+    std::memcpy(location, &timestamp, sizeof(timestamp));
+  }
+  set_header_stamp(cloud, desired_start);
+  last_frame_start = desired_start;
+  last_frame_end = maximum;
+
+  const auto count = ++corrected_frames;
+  if (count == 1 || count % 100 == 0) {
+    std::cerr << "[m20-lidar-guard] corrected rolling frame count=" << count
+              << " source_span=" << source_span << std::endl;
+  }
+  return true;
+}
+
+}  // namespace
+
+extern "C" bool guarded_pointcloud_write(void* channel, const PointCloud2* cloud)
+    __asm__("_ZN12DrDDSChannelIN11sensor_msgs3msg21PointCloud2PubSubTypeEE5WriteEPKNS1_11PointCloud2E");
+
+extern "C" bool guarded_pointcloud_write(void* channel, const PointCloud2* cloud) {
+  if (cloud == nullptr) {
+    return resolve_original()(channel, cloud);
+  }
+  auto* mutable_cloud = const_cast<PointCloud2*>(cloud);
+  if (!sanitize(*mutable_cloud)) {
+    return true;
+  }
+  const bool written = resolve_original()(channel, cloud);
+  if (written) {
+    telemetry_sender().send(*cloud);
+  }
+  return written;
+}

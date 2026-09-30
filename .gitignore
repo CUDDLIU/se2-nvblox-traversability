@@ -1,0 +1,35 @@
+# Local environments and native build products
+.venv/
+__pycache__/
+*.py[cod]
+*.so
+*.o
+*.a
+*.egg-info/
+build/
+install/
+log/
+dist/
+installed_library.sha256
+test_converter
+test_split
+
+# Field data, generated outputs, and workstation state
+bags/
+runtime/
+backups/
+diagnostics/
+results/
+snapshots/
+output/
+*.db3
+*.mcap
+*.pcd
+*.npz
+*.npy
+*.log
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/

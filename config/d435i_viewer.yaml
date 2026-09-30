@@ -1,0 +1,39 @@
+/**:
+  ros__parameters:
+    camera_name: d435i
+    # Installation TF and factory optical extrinsics have a single external owner.
+    publish_tf: false
+    serial_no: '242322076510'
+    base_frame_id: d435i_mount_link
+    json_file_path: /home/nvidia/下载/Realsense_Viewer/config922.json
+    enable_depth: true
+    enable_color: false
+    enable_infra1: false
+    enable_infra2: false
+    enable_gyro: false
+    enable_accel: false
+    depth_module.depth_profile: 848x480x15
+    depth_module.emitter_enabled: 1
+    depth_module.emitter_on_off: false
+    depth_module.laser_power: 360.0
+    depth_module.enable_auto_exposure: true
+    depth_module.global_time_enabled: true
+    align_depth.enable: false
+    pointcloud.enable: false
+    depth_qos: SENSOR_DATA
+    depth_info_qos: SENSOR_DATA
+    decimation_filter.enable: true
+    decimation_filter.filter_magnitude: 2
+    hdr_merge.enable: true
+    disparity_filter.enable: true
+    disparity_to_depth.enable: true
+    spatial_filter.enable: true
+    spatial_filter.filter_magnitude: 2
+    spatial_filter.filter_smooth_alpha: 0.5
+    spatial_filter.filter_smooth_delta: 20
+    spatial_filter.holes_fill: 0
+    temporal_filter.enable: true
+    temporal_filter.filter_smooth_alpha: 0.5
+    temporal_filter.filter_smooth_delta: 20
+    temporal_filter.holes_fill: 3
+    hole_filling_filter.enable: false
