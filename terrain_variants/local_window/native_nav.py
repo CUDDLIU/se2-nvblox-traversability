@@ -29,6 +29,7 @@ class Classifier:
         self.mesh=None
         self.states=None
         self.comfortable=None
+        self.proved=None
         unique={}
         for yaw,mask in enumerate(masks):
             key=tuple(mask[0])
@@ -104,6 +105,9 @@ class Classifier:
                     proved.ctypes.data,distances.ctypes.data,reasons.ctypes.data)
                 if code:raise ValueError('Physical swept footprint proof failed')
                 proved |= self.comfortable
+            # Complete swept-yaw channels certified by the voxel footprint
+            # classifier, before sub-cell metric witnesses refine unresolved bits.
+            self.proved=proved.copy()
             self.states=np.full((n,c.yaw_bins,6),np.nan,dtype=np.float64)
             code=_lib.mesh_store_body_states(self.mesh._ptr,n,xy.ctypes.data,z.ctypes.data,walk.ctypes.data,
                 roots.ctypes.data,len(roots),c.vertical_resolution,c.resolution,c.length,c.width,c.required_height,c.max_step,

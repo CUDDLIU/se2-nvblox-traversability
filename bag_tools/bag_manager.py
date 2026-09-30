@@ -617,13 +617,52 @@ class BagManager:
             self.paused = not self.paused
             self.message = ('输入已暂停，仍可调参重算' if self.rebuild else '回放已暂停') if self.paused else ('正在重建回放' if self.rebuild else '正在原样回放')
 
+    def open_global_plan(self, key):
+        with self.guard:
+            if self.mode != 'idle':
+                raise RuntimeError('请先停止录制或关闭当前回放/规划窗口')
+            path = self.checked_path(key)
+            candidates = list((path / 'global_plans').glob('*/navmesh.json'))
+            if not candidates:
+                raise RuntimeError('这个 bag 尚未构建全局通行图；请先运行 global_planner 的整包建图流程')
+            source = max(candidates, key=lambda p: p.stat().st_mtime)
+            directory = source.parent.resolve()
+            if not directory.is_relative_to(path.resolve()):
+                raise ValueError('全局图不能指向 bag 目录之外')
+            if not all((directory / name).is_file() for name in ('mesh.npz', 'field.npz')):
+                raise RuntimeError('全局图不完整，缺少 Mesh 或可通行场')
+            session = directory / 'runtime'
+            session.mkdir(exist_ok=True)
+            (session / 'status.json').unlink(missing_ok=True)
+            self._suspend_live_rviz()
+            self._spawn('global_plan', ['/bin/bash', str(self.root / 'global_planner/start.sh'), str(directory)], session,
+                        env_overrides={'SE2_GLOBAL_DOMAIN': '79'})
+            self.mode, self.active, self.session = 'plan', path, session
+            self.rebuild, self.paused = False, False
+            self.message = '全局规划启动中；在 RViz 使用 Publish Point 点击目标楼层地面'
+
+    def global_plan_action(self, action):
+        with self.guard:
+            if self.mode != 'plan' or action not in ('pick_start', 'reset_start'):
+                raise RuntimeError('请先打开全局路径规划')
+            env = self.env(True)
+            env['ROS_DOMAIN_ID'] = '79'
+            result = subprocess.run(['ros2', 'service', 'call', '/se2_global/' + action,
+                                     'std_srvs/srv/Trigger', '{}'], env=env,
+                                    capture_output=True, text=True, timeout=10)
+            if result.returncode:
+                raise RuntimeError(result.stderr[-1000:])
+            self.message = ('下一次 RViz Publish Point 点击将设置起点' if action == 'pick_start'
+                            else '已恢复为 bag 录制终点')
+
     def stop_play(self):
         with self.guard:
+            self._stop_child('global_plan')
             self._stop_child('play')
             self._stop_child('rviz')
             for child in ('terrain', 'height', 'nvblox', 'deskew', 'reference', 'saved_map', 'timed_tf', 'replay_model'):
                 self._stop_child(child)
-            if self.mode in ('play', 'finished'):
+            if self.mode in ('play', 'finished', 'plan'):
                 self.mode, self.active, self.paused = 'idle', None, False
                 self.message = '回放已关闭；点击“恢复实时重建”打开实时 RViz'
             self.rebuild = False
@@ -701,7 +740,19 @@ class BagManager:
 
     def tick(self):
         with self.guard:
-            if self.mode == 'record':
+            if self.mode == 'plan':
+                if self.children['global_plan'].poll() is not None:
+                    code = self.children['global_plan'].returncode
+                    self.stop_play()
+                    self.message = ('全局规划窗口已关闭；可重新打开或恢复实时重建' if code == 0 else
+                                    '全局规划退出，请查看诊断日志 global_plan.log / planner.log')
+                else:
+                    try:
+                        state = json.loads((self.session / 'status.json').read_text())
+                        self.message = state['message']
+                    except (OSError, ValueError, KeyError):
+                        pass
+            elif self.mode == 'record':
                 health = self._map_health(self.active)
                 self.message = '正在录制传感器与地图（Mesh 已关闭）：' + self._manifest(self.active).get('title', self.active.name)
                 lost = cache_losses(self.active/'record.log')

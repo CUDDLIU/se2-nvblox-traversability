@@ -48,3 +48,7 @@ Rename, move to trash, restore, and permanently delete operate on the complete b
 ## Tests
 
 Run `bash scripts/test_core.sh` from the repository root for CPU tests. The `test_*.py` modules use temporary storage and mocks for external processes. `smoke_*.py` programs are separate manual checks that operate the real deployment. Historical field datasets used by diagnostic scripts are not included.
+
+## 整包全局规划
+
+选中已构建通行图的 bag 后，点击 **全局路径规划**，在 RViz 使用 **Publish Point** 点击目标楼层地面。起点默认是录制终点，可通过 **在 RViz 设起点** 和 **恢复 bag 终点** 修改。**关闭回放** 关闭规划窗口。静态图采用构建时参数，随 bag 绑定管理；详见[整包建图、论文对应关系与 ROS 接口](../docs/global-planning.md#简体中文)。

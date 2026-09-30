@@ -12,7 +12,7 @@
 [![ROS 2 Humble](https://img.shields.io/badge/ROS_2-Humble-22314E)](https://docs.ros.org/en/humble/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-[演示](#演示) · [快速开始](#快速开始) · [算法架构](docs/architecture.md) · [Jetson 部署](docs/jetson.md) · [验证结果](docs/validation.md)
+[演示](#演示) · [快速开始](#快速开始) · [全局规划](docs/global-planning.md#简体中文) · [算法架构](docs/architecture.md) · [Jetson 部署](docs/jetson.md) · [验证结果](docs/validation.md)
 
 </div>
 
@@ -42,6 +42,7 @@ SE(2) Nvblox Traversability 将 [nvblox](https://github.com/nvidia-isaac/nvblox)
 - **保持楼层独立。** 多层高度场结合局部表面连通关系，避免把上层边缘直接投影成下层障碍。
 - **增量处理当前区域。** C++/OpenMP 核心从变化的 Mesh 块更新机器人附近窗口；历史区域继续显示，并保留独立的有效性语义。
 - **一次录制，多次调参。** 录制时关闭 Mesh 重建以节省资源；bag、地图与遥测绑定管理；支持纯雷达、深度或融合重建，以及暂停回放后继续调参。
+- **点选跨楼层目标。** 从整包构建静态多层通行图，在 RViz 点击三维目标，经 A* → 路径拉直 → 朝向 A* 得到通过楼梯的已检查路径。[使用方法及与 SE(2) NavMesh 论文的对应关系 →](docs/global-planning.md#简体中文)
 - **统一 RViz 显示与机身状态。** 显示高度着色 Mesh、通行栅格与 M20 实测关节模型；回放时暂停实时重建视图，并提供恢复按钮。
 
 本项目用于研究与系统集成，输出几何分析和可视化，不发送机器人运动指令。接入规划器前请阅读[当前限制](#当前限制)。
@@ -79,6 +80,8 @@ bash /home/nvidia/scanplanner_test/se2_terrain_check/start_after_boot.sh
 ```
 
 选中 bag，启用重新建图，选择传感器输入，再打开 RViz 回放。默认使用带去畸变的纯雷达方案；重建使用**包内已录位姿**，不会重新估计里程计。点击 **恢复实时重建** 返回实时输入。
+
+对于已构建全局图的 bag，点击 **全局路径规划**，再在 RViz 用 **Publish Point** 点击目标楼层地面。默认起点为录制终点，详见[全局规划说明](docs/global-planning.md#简体中文)。
 
 全新机器还需要 ROS 2/nvblox、传感器驱动、里程计、标定 TF 和部署服务。CPU 快速开始不会安装这些外部组件，具体见 [Jetson 集成说明](docs/jetson.md) 和 [bag 操作流程](bag_tools/README.md)。
 
@@ -127,6 +130,7 @@ flowchart LR
 | [`terrain_variants/baseline/`](terrain_variants/baseline/) | 用于对照的早期实现 |
 | [`terrain_variants/deskew/`](terrain_variants/deskew/) · [`fast_lidar/`](terrain_variants/fast_lidar/) | 雷达运动补偿与 Jetson CUDA 转换 |
 | [`bag_tools/`](bag_tools/) | 录制、重建、调参集成和包管理 |
+| [`global_planner/`](global_planner/) | 整包全局图、朝向分层 ASA 规划和 RViz 三维选点 |
 | [`robot_model/`](robot_model/) | M20 关节转换、专用 TF 和上游模型 |
 | [`launch/`](launch/) · [`config/`](config/) | ROS 2 包启动与配置 |
 | [`deployment/jetson/`](deployment/jetson/) | 现有部署入口和配置快照 |
@@ -136,7 +140,7 @@ flowchart LR
 
 - 几何质量依赖观测、标定、里程计和 TSDF 积分。反光表面、缺失观测和无立面的踏板楼梯仍可能出现重建缺口。
 - 地面支撑采用有限分辨率检查；模型是机身包络与地形约束，不是四足动力学、接触状态或步态可行性求解器。
-- 当前有效性范围为局部窗口。历史格子和保存地图可用于查看，不能证明旧路线现在仍可通过。
+- 实时分类的有效性范围为当前局部窗口。全局规划针对整包的静态 Mesh 检查路径；环境变化后，历史显示和保存路径不能代表当前通行许可。
 - 仓库不包含原始实地 bag。构造场景测试可直接复现，实地结果以汇总证据记录。
 - Jetson 集成保留了部署相关路径和服务依赖。CUDA 适配器需要根据已安装的 nvblox 库构建，不提供预编译二进制。
 

@@ -1,0 +1,90 @@
+{
+  "date": "2026-09-30",
+  "scope": "One static complete-bag map and selected queries; not building-wide reachability or motion execution",
+  "hardware": "Jetson Orin NX 16 GB",
+  "bag_duration_s": 326.6331619,
+  "mesh_triangles": 360521,
+  "traversable_spans": 9976,
+  "polygons": 5879,
+  "portals": 11440,
+  "local_unit_tests_passed": 77,
+  "jetson_global_planner_tests_passed": 7,
+  "ros_smoke": [
+    "3D goal -> checked nav_msgs/Path",
+    "invalid midair goal -> empty Path",
+    "valid query after rejection -> checked Path"
+  ],
+  "queries": [
+    {
+      "method": "ASA",
+      "length_m": 47.043218975670065,
+      "height_range_m": [
+        -0.68,
+        5.69
+      ],
+      "seconds": 34.85261789799915,
+      "initial": {
+        "cost": 152.13275435065665,
+        "expanded": 8701685,
+        "seconds": 32.128119369999695,
+        "geometric_validation_passes": 87,
+        "search": "native lazy A*"
+      },
+      "straightening": "portal-constrained 3D string pulling with retained metric anchors",
+      "yaw_refinement": {
+        "cost": 149.35686607259277,
+        "expanded": 1699,
+        "seconds": 1.3392840069991507,
+        "geometric_validation_passes": 3,
+        "search": "native lazy A*"
+      },
+      "string_pulling_sections": 19,
+      "motion_segments_verified": 478,
+      "voxel_certified_segments": 361,
+      "metric_certified_segments": 117
+    },
+    {
+      "method": "ASA",
+      "length_m": 47.043218975670065,
+      "height_range_m": [
+        -0.68,
+        5.69
+      ],
+      "seconds": 13.907630949001032,
+      "initial": {
+        "cost": 152.13275435065665,
+        "expanded": 158130,
+        "seconds": 11.225427388999378,
+        "geometric_validation_passes": 1,
+        "search": "native lazy A*"
+      },
+      "straightening": "portal-constrained 3D string pulling with retained metric anchors",
+      "yaw_refinement": {
+        "cost": 149.35686607259277,
+        "expanded": 1699,
+        "seconds": 1.3139345600011438,
+        "geometric_validation_passes": 3,
+        "search": "native lazy A*"
+      },
+      "string_pulling_sections": 19,
+      "motion_segments_verified": 478,
+      "voxel_certified_segments": 361,
+      "metric_certified_segments": 117
+    }
+  ],
+  "rviz_mouse_click": {
+    "state": "success",
+    "result": {
+      "method": "ASA",
+      "length_m": 50.57379231870892,
+      "height_range_m": [
+        -0.68,
+        6.34
+      ],
+      "seconds": 15.424288190999505,
+      "motion_segments_verified": 519,
+      "voxel_certified_segments": 398,
+      "metric_certified_segments": 121
+    }
+  }
+}

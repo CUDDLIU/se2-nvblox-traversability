@@ -14,3 +14,5 @@ The model's source manifest includes file hashes in [`robot_model/source_manifes
 ROS 2, nvblox/Isaac ROS, RealSense drivers, SuperLIO, and vendor hardware interfaces are separate dependencies governed by their own upstream terms. No private vendor SDK headers, user-provided protocol documents, or prebuilt deployment libraries are included in this publication.
 
 README organization was informed by the official [Meta SAM 2](https://github.com/facebookresearch/sam2), [NVIDIA Warp](https://github.com/NVIDIA/warp), and [Google DeepMind MuJoCo](https://github.com/google-deepmind/mujoco) repositories: concise purpose, visible demos, executable quick starts, and explicit technical scope. Their text, branding, and project claims were not copied. These references do not imply affiliation or endorsement.
+
+The global planner independently implements concepts from [SE(2) NavMesh](https://se2-navmesh.github.io/) and its [paper](https://se2-navmesh.github.io/static/SE2_anonymous.pdf). No author source code or paper assets are bundled. See [algorithm correspondence and adaptations](docs/global-planning.md).

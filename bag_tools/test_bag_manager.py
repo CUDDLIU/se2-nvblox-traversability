@@ -17,6 +17,31 @@ from replay_profiles import STAIRS_PROFILE, initial_settings
 
 
 class BagTests(unittest.TestCase):
+    def test_global_plan_owns_viewer_and_protects_bag_bundle(self):
+        path = self.bag()
+        directory = path / 'global_plans/map_test'
+        directory.mkdir(parents=True)
+        for name in ('navmesh.json', 'mesh.npz', 'field.npz'):
+            (directory / name).write_text('{}')
+        with patch.object(self.manager, '_spawn') as spawn, patch.object(self.manager, '_suspend_live_rviz'):
+            self.manager.open_global_plan('test')
+        self.assertEqual(self.manager.mode, 'plan')
+        self.assertEqual(spawn.call_args.args[0], 'global_plan')
+        with self.assertRaises(RuntimeError):
+            self.manager.move_to_trash('test')
+        self.manager.stop_play()
+        self.assertEqual(self.manager.mode, 'idle')
+        self.manager.move_to_trash('test')
+        self.assertTrue((self.manager.trash/'test/global_plans/map_test/navmesh.json').is_file())
+
+    def test_global_plan_missing_map_and_recording_leave_state_unchanged(self):
+        self.bag()
+        with self.assertRaises(RuntimeError):self.manager.open_global_plan('test')
+        self.assertEqual(self.manager.mode, 'idle')
+        self.manager.mode = 'record'
+        with self.assertRaises(RuntimeError):self.manager.open_global_plan('test')
+        self.manager.mode = 'idle'
+
     def test_sensor_recording_retains_rebuild_inputs_without_mesh_outputs(self):
         for mode in ('depth', 'fusion', 'lidar'):
             topics,_ = playback_topics({t:1 for t in RECORD_CORE_TOPICS+RECORD_LIDAR_TOPICS}, True, mode)

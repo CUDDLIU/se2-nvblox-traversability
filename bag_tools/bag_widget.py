@@ -94,6 +94,14 @@ class BagWidget:
         self.pause_button = self.button(playback, '暂停 / 继续', lambda: self.submit(self.manager.toggle_pause))
         self.stop_play_button = self.button(playback, '关闭回放', lambda: self.submit(self.manager.stop_play))
         self.compare_button = self.button(playback, '保存对比快照', self.compare)
+        planning = ttk.Frame(parent)
+        planning.pack(fill='x', padx=12, pady=3)
+        self.plan_button = self.button(planning, '全局路径规划', self.open_global_plan)
+        self.plan_start_button = self.button(planning, '在 RViz 设起点',
+            lambda: self.submit(self.manager.global_plan_action, 'pick_start'))
+        self.plan_reset_button = self.button(planning, '恢复 bag 终点',
+            lambda: self.submit(self.manager.global_plan_action, 'reset_start'))
+        ttk.Label(planning, text='Publish Point 点选三维目标；关闭规划请点“关闭回放”。').pack(side='left')
         live = ttk.Frame(parent)
         live.pack(fill='x', padx=12, pady=5)
         self.restore_live_button = self.button(live, '恢复实时重建',
@@ -176,6 +184,11 @@ class BagWidget:
     def open_results(self):
         path = self.manager.session or self.manager.runtime
         subprocess.Popen(['xdg-open', str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def open_global_plan(self):
+        key = self.selected()
+        if key and not self.deleted.get():
+            self.submit(self.manager.open_global_plan, key)
 
     def open_map(self):
         key = self.selected()
@@ -260,7 +273,10 @@ class BagWidget:
         self.stop_record_button.configure(state='normal' if mode == 'record' else 'disabled')
         self.play_button.configure(state='normal' if mode == 'idle' and not self.deleted.get() else 'disabled')
         self.pause_button.configure(state='normal' if mode == 'play' else 'disabled')
-        self.stop_play_button.configure(state='normal' if mode in ('play', 'finished') else 'disabled')
+        self.stop_play_button.configure(state='normal' if mode in ('play', 'finished', 'plan') else 'disabled')
+        self.plan_button.configure(state='normal' if mode == 'idle' and not self.deleted.get() else 'disabled')
+        self.plan_start_button.configure(state='normal' if mode == 'plan' else 'disabled')
+        self.plan_reset_button.configure(state='normal' if mode == 'plan' else 'disabled')
         self.compare_button.configure(state='normal' if self.manager.rebuild and mode in ('play', 'finished') else 'disabled')
         self.restore_live_button.configure(state='disabled' if mode == 'record' else 'normal')
 
