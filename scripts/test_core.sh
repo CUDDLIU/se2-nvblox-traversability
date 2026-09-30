@@ -13,3 +13,4 @@ cd -- "$project_root"
 "$python_bin" -m unittest -v test_physical_clearance test_pose_graph test_angular_display test_window test_folded_floors
 "$python_bin" -m unittest discover -s bag_tools -p 'test_*.py' -v
 "$python_bin" -m unittest -v test_kinematics test_planner
+"$python_bin" -m unittest discover -s scanplanner_integration/tests -p 'test_*.py' -v

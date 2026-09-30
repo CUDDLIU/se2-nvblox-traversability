@@ -1,0 +1,129 @@
+Panels:
+- Class: rviz_common/Displays
+  Name: Displays
+- Class: rviz_common/Views
+  Name: Views
+Visualization Manager:
+  Class: ''
+  Enabled: true
+  Global Options:
+    Background Color: 25; 29; 35
+    Fixed Frame: nvblox_odom
+    Frame Rate: 20
+  Displays:
+  - Class: rviz_default_plugins/MarkerArray
+    Name: 完整 bag Mesh（可选，选点时关闭）
+    Enabled: false
+    Topic:
+      Value: /se2_global/mesh
+      Reliability Policy: Reliable
+      Durability Policy: Transient Local
+      Depth: 1
+  - Class: rviz_default_plugins/MarkerArray
+    Name: 全局可通行图 · 绿 / 橙
+    Enabled: true
+    Topic:
+      Value: /se2_global/traversability
+      Reliability Policy: Reliable
+      Durability Policy: Transient Local
+      Depth: 1
+  - Class: rviz_default_plugins/MarkerArray
+    Name: SE(2) 多边形边界（可选）
+    Enabled: false
+    Topic:
+      Value: /se2_global/polygons
+      Reliability Policy: Reliable
+      Durability Policy: Transient Local
+      Depth: 1
+  - Class: rviz_default_plugins/MarkerArray
+    Name: 全局路径 · 黄色 / 朝向箭头
+    Enabled: true
+    Topic:
+      Value: /se2_global/path_markers
+      Reliability Policy: Reliable
+      Durability Policy: Transient Local
+      Depth: 1
+  - Class: rviz_default_plugins/MarkerArray
+    Name: 起点 · 青色 / 目标 · 粉色
+    Enabled: true
+    Topic:
+      Value: /se2_global/query_markers
+      Reliability Policy: Reliable
+      Durability Policy: Transient Local
+      Depth: 1
+  - Class: rviz_default_plugins/Grid
+    Name: Reference grid
+    Enabled: true
+    Cell Size: 1
+    Plane Cell Count: 40
+  - Class: rviz_default_plugins/Path
+    Name: ScanPlanner 局部轨迹
+    Enabled: true
+    Topic:
+      Value: /se2_scan/local_path
+      Depth: 1
+      Durability Policy: Volatile
+      Reliability Policy: Reliable
+    Color: 0; 210; 255
+    Line Style: Lines
+    Line Width: 0.04
+  - Class: rviz_default_plugins/Path
+    Name: ScanPlanner 参考窗口
+    Enabled: true
+    Topic:
+      Value: /se2_scan/reference
+      Depth: 1
+      Durability Policy: Volatile
+      Reliability Policy: Reliable
+    Color: 220; 80; 255
+    Line Style: Lines
+    Line Width: 0.04
+  - Class: rviz_default_plugins/PointCloud2
+    Name: 局部雷达点云
+    Enabled: true
+    Topic:
+      Value: /se2_scan/world_cloud
+      Depth: 1
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+    Size (m): 0.025
+    Style: Points
+    Color Transformer: AxisColor
+    Axis: Z
+    Decay Time: 0.2
+  - Class: rviz_default_plugins/Odometry
+    Name: M20 机身位姿（录制值）
+    Enabled: true
+    Topic:
+      Value: /nvblox_lio/odom
+      Depth: 1
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+    Keep: 1
+    Shape: Arrow
+    Color: 255; 255; 255
+    Position Tolerance: 0.02
+    Angle Tolerance: 0.02
+  Tools:
+  - Class: rviz_default_plugins/Interact
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Select
+  - Class: rviz_default_plugins/PublishPoint
+    Topic:
+      Value: /clicked_point
+    Single click: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Near Clip Distance: 0.01
+      Distance: 36
+      Pitch: 0.6
+      Yaw: 0.2
+      Target Frame: <Fixed Frame>
+      Focal Point:
+        X: 0
+        Y: -9
+        Z: 2.5
+Window Geometry:
+  Width: 1400
+  Height: 900

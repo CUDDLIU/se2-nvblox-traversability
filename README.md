@@ -8,7 +8,6 @@ Geometry-based traversability for quadruped robots: narrow passages, stairs, and
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-[![Core checks](https://github.com/CUDDLIU/se2-nvblox-traversability/actions/workflows/core.yml/badge.svg)](https://github.com/CUDDLIU/se2-nvblox-traversability/actions/workflows/core.yml)
 [![ROS 2 Humble](https://img.shields.io/badge/ROS_2-Humble-22314E)](https://docs.ros.org/en/humble/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
@@ -22,9 +21,9 @@ Developed on an M20 robot with a Jetson Orin NX, dual LiDAR, and a RealSense D43
 
 ## Demo
 
-[![RViz reconstruction and traversability demo](docs/media/demo-preview.gif)](https://github.com/CUDDLIU/se2-nvblox-traversability/raw/refs/heads/main/docs/media/demo-full.mp4)
+[![RViz reconstruction and traversability demo](docs/media/demo-preview.gif)](docs/media/demo-full.mp4)
 
-**[Watch or download the full demo · 3:56 · MP4](https://github.com/CUDDLIU/se2-nvblox-traversability/raw/refs/heads/main/docs/media/demo-full.mp4)**
+**[Watch or download the full demo · 3:56 · MP4](docs/media/demo-full.mp4)**
 
 Recorded September 30, 2026. The preview contains two short excerpts at original speed; the full video retains the complete recording. Rainbow colors encode mesh height. Green and orange cells encode current traversability; blue areas retain historical results.
 
@@ -45,7 +44,7 @@ Recorded September 30, 2026. The preview contains two short excerpts at original
 - **Cross-floor goal planning.** Build a static all-floor map from a bag and select a 3D goal in RViz. A paper-based A* → string pulling → heading A* planner produces a checked route through stairs. [Workflow and relation to SE(2) NavMesh →](docs/global-planning.md)
 - **RViz and robot state.** Height-colored meshes, traversability cells, and an M20 joint model share the reconstruction frame. Replay suspends the live reconstruction view; a button restores it.
 
-This is a research and integration project. It produces geometric analysis and visualization, and does not issue robot motion commands. See [current limits](#current-limits) before using the output in a planner.
+This is a research and integration project. Geometry analysis and replay do not issue motion commands. The optional M20 integration enables hardware output only with `--execute`. Live route recovery remains under development; see the [known issue](docs/scanplanner-integration.md#known-issue) and [current limits](#current-limits).
 
 ## Quick start
 
@@ -54,7 +53,7 @@ This is a research and integration project. It produces geometric analysis and v
 Requirements: Linux, Python 3.10+, a C++17 compiler with OpenMP, and the packages in [requirements-core.txt](requirements-core.txt).
 
 ```bash
-git clone https://github.com/CUDDLIU/se2-nvblox-traversability.git
+git clone https://arcusgit.vip.cpolar.cn/liuzhenghao/se2-nvblox-traversability.git
 cd se2-nvblox-traversability
 
 # Ubuntu / Debian build prerequisites
@@ -82,6 +81,8 @@ bash /home/nvidia/scanplanner_test/se2_terrain_check/start_after_boot.sh
 Select a bag, enable reconstruction, choose the sensor input, and open replay in RViz. The default reconstruction profile uses LiDAR with deskewing; replay uses the **recorded poses**, rather than rerunning odometry estimation. Use **Restore live reconstruction / 恢复实时重建** to return to live input.
 
 For a bag with a built global map, click **全局路径规划**, then use RViz **Publish Point** on the destination floor. The start defaults to the recorded bag endpoint. See the [global planning guide](docs/global-planning.md).
+
+The optional [ScanPlanner + M20 integration](docs/scanplanner-integration.md) downloads a pinned ROS 2 community port into this project, preserves 3D route heights and body headings, and provides isolated bag replay with latency logs. Run `bash scanplanner_integration/start.sh` on the deployed Jetson. Robot actuation is disabled by default.
 
 A fresh machine also needs the ROS 2/nvblox stack, sensor drivers, odometry, calibrated transforms, and deployment services. Those external components are not installed by the CPU quick start. Follow the [Jetson integration guide](docs/jetson.md) and [bag workflow](bag_tools/README.md).
 

@@ -1,0 +1,1401 @@
+{
+  "date": "2026-09-30",
+  "platform": "Jetson, Ubuntu 22.04, ROS 2 Humble, aarch64; existing reconstruction services kept running",
+  "upstream_commit": "d0b921c9b05a6d291d144d60882b2e0e88d2c0e0",
+  "bag": "20260929_155717_4a77a9",
+  "hardware_actuation": true,
+  "latency_boundary": "raw PointCloud2 callback ingress -> time compensation / waiting for bracketing poses -> SCAN occupancy update -> collision decision; sensor/driver age excluded and separately measured",
+  "full_bag": {
+    "session": "20260930_161647",
+    "scope": "Complete input playback. Valid local trajectory active for 46 measured frames; recorded motion subsequently left the selected global corridor and commands were stopped. Before the final denser connector/yaw sweep; sensor and controller pipelines unchanged.",
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 3252,
+        "control": 10169,
+        "verification": 12,
+        "optimization": 32,
+        "candidates": 14,
+        "verified": 4,
+        "status": 7
+      },
+      "ingress_to_decision_ms": {
+        "count": 3252,
+        "p50": 14.955150501918979,
+        "p95": 26.580377150094137,
+        "p99": 32.7233771891042,
+        "max": 45.23451999921235
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 3252,
+        "p50": 10.436697501063463,
+        "p95": 19.274596401737654,
+        "p99": 25.228506129060374,
+        "max": 33.177416997205
+      },
+      "map_update_ms": {
+        "count": 3252,
+        "p50": 4.308686498916359,
+        "p95": 8.173854550113901,
+        "p99": 10.657569811264686,
+        "max": 17.589894003322115
+      },
+      "collision_check_ms": {
+        "count": 3252,
+        "p50": 0.0034240001696161926,
+        "p95": 0.004543999239103869,
+        "p99": 0.1596144706127232,
+        "max": 0.5812679992232006
+      },
+      "sensor_age_ms": {
+        "count": 3252,
+        "p50": 153.72610092163086,
+        "p95": 189.78091478347775,
+        "p99": 197.32717752456662,
+        "max": 286.65733337402344
+      },
+      "replaced_frames": 0,
+      "dropped_frames": 2,
+      "active_trajectory_ingress_to_decision_ms": {
+        "count": 46,
+        "p50": 17.061236501831445,
+        "p95": 25.473835001321277,
+        "p99": 28.88558915074099,
+        "max": 29.97996800331748
+      },
+      "control_period_ms": {
+        "count": 10168,
+        "p50": 33.332910999888554,
+        "p95": 33.51796339793509,
+        "p99": 34.37074628214759,
+        "max": 39.449592997698346
+      },
+      "control_mean_hz": 30.000292303457694,
+      "periods_over_50_ms": 0,
+      "nonzero_commands": 87,
+      "candidate_verification_ms": {
+        "count": 12,
+        "p50": 46.585749500081874,
+        "p95": 72.11303349886292,
+        "p99": 84.75299709793036,
+        "max": 87.9129879976972
+      },
+      "accepted_candidates": 4,
+      "optimizer_ms": {
+        "count": 32,
+        "p50": 0.22746349999999999,
+        "p95": 1.8311288499999998,
+        "p99": 5.493124330000007,
+        "max": 7.07873
+      },
+      "optimizer_successes": 12,
+      "cloud_to_verified_trajectory_ms": {
+        "count": 4,
+        "p50": 93.4612040000502,
+        "p95": 125.01300655003432,
+        "p99": 129.14395411007717,
+        "max": 130.17669100008789
+      }
+    }
+  },
+  "final_rviz_chain": {
+    "session": "20260930_163250",
+    "scope": "Final denser swept connector guard, actual RViz display, measured-start goal, automatic bag pause and resume (confirmed in player logs).",
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 482,
+        "control": 2817,
+        "verification": 9,
+        "optimization": 28,
+        "candidates": 12,
+        "verified": 3,
+        "status": 5
+      },
+      "ingress_to_decision_ms": {
+        "count": 482,
+        "p50": 13.61187099973904,
+        "p95": 21.862863000205834,
+        "p99": 28.045981577743078,
+        "max": 45.86431200004881
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 482,
+        "p50": 9.156135498415097,
+        "p95": 16.169548348079843,
+        "p99": 19.54797055961535,
+        "max": 27.704782001819694
+      },
+      "map_update_ms": {
+        "count": 482,
+        "p50": 4.0169205003621755,
+        "p95": 6.984476300567621,
+        "p99": 11.201539030917036,
+        "max": 33.7086020008428
+      },
+      "collision_check_ms": {
+        "count": 482,
+        "p50": 0.0035199991543777287,
+        "p95": 0.19835964994854294,
+        "p99": 0.26452918973518535,
+        "max": 0.6070929994166363
+      },
+      "sensor_age_ms": {
+        "count": 482,
+        "p50": 153.76567840576172,
+        "p95": 187.52386569976807,
+        "p99": 188.12089443206787,
+        "max": 207.68284797668457
+      },
+      "replaced_frames": 0,
+      "dropped_frames": 2,
+      "active_trajectory_ingress_to_decision_ms": {
+        "count": 24,
+        "p50": 15.573169499475625,
+        "p95": 23.69842695079568,
+        "p99": 25.444785980253073,
+        "max": 25.73092300008284
+      },
+      "control_period_ms": {
+        "count": 2816,
+        "p50": 33.33281300001545,
+        "p95": 33.582326001123874,
+        "p99": 34.49618970007577,
+        "max": 43.247294997854624
+      },
+      "control_mean_hz": 29.999328310672002,
+      "periods_over_50_ms": 0,
+      "nonzero_commands": 75,
+      "candidate_verification_ms": {
+        "count": 9,
+        "p50": 45.55294099918683,
+        "p95": 63.100737801141804,
+        "p99": 65.7624603608565,
+        "max": 66.42789100078517
+      },
+      "accepted_candidates": 3,
+      "optimizer_ms": {
+        "count": 28,
+        "p50": 0.16899750000000002,
+        "p95": 0.9559507499999993,
+        "p99": 1.28297778,
+        "max": 1.333869
+      },
+      "optimizer_successes": 8,
+      "cloud_to_verified_trajectory_ms": {
+        "count": 3,
+        "p50": 74.47101299840142,
+        "p95": 124.39284389911336,
+        "p99": 128.83033997917664,
+        "max": 129.93971399919246
+      }
+    }
+  },
+  "final_obstacle_injection": {
+    "obstacle_to_block_ms": 19.87432099849684,
+    "obstacle_to_zero_ms": 33.475186999567086,
+    "state": "passed",
+    "max_ingress_decision_ms": 79.60080900011235,
+    "p95_ingress_decision_ms": 7.792609998432454,
+    "nonzero_commands": 55,
+    "control_samples": 113,
+    "frames": 33,
+    "checks": [
+      "clear motion",
+      "new obstacle stop",
+      "stale odometry stop",
+      "empty path cancel"
+    ]
+  },
+  "udp_loopback": {
+    "destination": "127.0.0.1",
+    "state": "passed",
+    "velocity_hz": 30.00140761516134,
+    "packets": 139,
+    "checks": [
+      "true-unit payload and header",
+      "fresh robot telemetry required",
+      "missing ROS commands produce zero within 200 ms"
+    ]
+  },
+  "cpu_tests": 90,
+  "limitations": [
+    "The full cloud-to-new-verified-trajectory chain has not achieved 50 ms; reported separately.",
+    "Only short portions of the open-loop bag had active accepted trajectories.",
+    "No physical M20 walking, narrow-passage or multi-floor closed-loop acceptance run was performed.",
+    "The 10 cm local occupancy grid can remain more conservative than the global traversability model.",
+    "Raw-cloud QoS keeps the latest frame; these timings are not a lossless-recording guarantee.",
+    "Cold startup and missing bracketing poses can exceed 50 ms; such data cannot authorize movement."
+  ],
+  "goal_interface_smoke": {
+    "state": "passed",
+    "start": [
+      0.008458164520561695,
+      0.0030883955769240856,
+      -0.5701714478200302,
+      -0.0012250710029121491
+    ],
+    "path_poses": 12,
+    "pause_observed": true,
+    "resumed": true,
+    "global_seconds": 19.79308084600052
+  },
+  "final_headless_goal_session": {
+    "session": "20260930_163530",
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 240,
+        "control": 2073,
+        "verification": 9,
+        "optimization": 29,
+        "candidates": 13,
+        "verified": 3,
+        "status": 5
+      },
+      "ingress_to_decision_ms": {
+        "count": 240,
+        "p50": 17.41755200055195,
+        "p95": 28.30651889762521,
+        "p99": 36.06221906058635,
+        "max": 39.02139099955093
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 240,
+        "p50": 11.715294500390883,
+        "p95": 21.408150000024754,
+        "p99": 27.13452355077602,
+        "max": 31.9157730009465
+      },
+      "map_update_ms": {
+        "count": 240,
+        "p50": 5.076556999483728,
+        "p95": 9.080206947510302,
+        "p99": 13.605642119182416,
+        "max": 23.36402700166218
+      },
+      "collision_check_ms": {
+        "count": 240,
+        "p50": 0.0036319997889222577,
+        "p95": 0.2920547985922894,
+        "p99": 0.36913868800183963,
+        "max": 1.5453330015589017
+      },
+      "sensor_age_ms": {
+        "count": 240,
+        "p50": 165.18545150756836,
+        "p95": 189.30032253265352,
+        "p99": 220.44100046157806,
+        "max": 528.5012722015381
+      },
+      "replaced_frames": 0,
+      "dropped_frames": 2,
+      "active_trajectory_ingress_to_decision_ms": {
+        "count": 24,
+        "p50": 17.410815999028273,
+        "p95": 28.260477751246064,
+        "p99": 29.340525981569954,
+        "max": 29.522059001465095
+      },
+      "control_period_ms": {
+        "count": 2072,
+        "p50": 33.332926001094165,
+        "p95": 33.519015198726265,
+        "p99": 34.30081799757317,
+        "max": 37.37391100003151
+      },
+      "control_mean_hz": 30.000304311966662,
+      "periods_over_50_ms": 0,
+      "nonzero_commands": 75,
+      "candidate_verification_ms": {
+        "count": 9,
+        "p50": 45.155456002248684,
+        "p95": 56.719458001316525,
+        "p99": 59.342195601784624,
+        "max": 59.99788000190165
+      },
+      "accepted_candidates": 3,
+      "optimizer_ms": {
+        "count": 29,
+        "p50": 0.203559,
+        "p95": 1.0617577999999996,
+        "p99": 1.3605505199999997,
+        "max": 1.444849
+      },
+      "optimizer_successes": 9,
+      "cloud_to_verified_trajectory_ms": {
+        "count": 3,
+        "p50": 154.06485499988776,
+        "p95": 172.79231779975817,
+        "p99": 174.45698115974665,
+        "max": 174.87314699974377
+      }
+    }
+  },
+  "live_input_probe": {
+    "session": "20260930_164253",
+    "scope": "12 seconds, real domain 0 / LAN discovery, sensor input only, no route and no UDP sender; does not validate moving-trajectory latency.",
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 0,
+        "control": 365,
+        "verification": 0,
+        "optimization": 0,
+        "candidates": 0,
+        "verified": 0,
+        "status": 0
+      },
+      "control_period_ms": {
+        "count": 364,
+        "p50": 33.33299000041734,
+        "p95": 33.46327704966825,
+        "p99": 33.864825511336676,
+        "max": 34.32865499780746
+      },
+      "control_mean_hz": 30.000138544597192,
+      "periods_over_50_ms": 0,
+      "nonzero_commands": 0
+    },
+    "state": "no_live_cloud_topic",
+    "observed": "ROS domain 0 reports Unknown topic /LIDAR/POINTS_NX; live motion latency was not measurable",
+    "superseded_by": "live_input_probe_fixed",
+    "correction": "The old probe used the replay-only SHM profile, so its missing-topic observation did not establish absence of live publishers."
+  },
+  "live_input_probe_fixed": {
+    "session": "20260930_165544",
+    "scope": "15 seconds, live domain 0 using existing eno1 UDP/SHM profile; sensors only, no trajectory, no UDP sender and no physical motion commanded. Does not validate collision checks along an active trajectory.",
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 127,
+        "control": 438,
+        "verification": 0,
+        "optimization": 0,
+        "candidates": 0,
+        "verified": 0,
+        "status": 0
+      },
+      "ingress_to_decision_ms": {
+        "count": 127,
+        "p50": 23.940688999573467,
+        "p95": 32.08440389862517,
+        "p99": 42.840756259029085,
+        "max": 78.23633400039398
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 127,
+        "p50": 17.168681999464752,
+        "p95": 24.958313901151996,
+        "p99": 38.9096068791695,
+        "max": 58.27830899943365
+      },
+      "map_update_ms": {
+        "count": 127,
+        "p50": 6.3012069986143615,
+        "p95": 7.830018100867164,
+        "p99": 8.149459018386551,
+        "max": 19.95511299901409
+      },
+      "collision_check_ms": {
+        "count": 127,
+        "p50": 0.0030080009310040623,
+        "p95": 0.0037343968870118256,
+        "p99": 0.004016358943772502,
+        "max": 0.00451199957751669
+      },
+      "sensor_age_ms": {
+        "count": 127,
+        "p50": 172.37377166748047,
+        "p95": 200.05860328674316,
+        "p99": 211.5493774414062,
+        "max": 256.89101219177246
+      },
+      "replaced_frames": 3,
+      "dropped_frames": 0,
+      "active_trajectory_ingress_to_decision_ms": null,
+      "control_period_ms": {
+        "count": 437,
+        "p50": 33.33326599749853,
+        "p95": 33.49148560228059,
+        "p99": 33.92393452057149,
+        "max": 322.38697199863964
+      },
+      "control_mean_hz": 28.868760287076842,
+      "periods_over_50_ms": 2,
+      "nonzero_commands": 0
+    },
+    "inputs_observed": {
+      "cloud_hz": 10.0549168671591,
+      "body_odometry_hz": 200.0337578967244,
+      "motion_status_messages_in_12_seconds": 0
+    },
+    "readiness": "Not commissioned for autonomous walking. Current SuperLIO starts a fresh map; alignment to the saved map is unverified. Body-height telemetry missing. Two measured control periods exceeded 50 ms."
+  },
+  "live_localized_stationary": {
+    "session": "20260930_173732",
+    "scope": "Actual live LiDAR, current body odometry, measured M20 height, saved map localization, RViz global goal, local controller and cancel. UDP receiver was telemetry-only; no motion packets or usage-mode changes sent to hardware. Robot remained under operator control. This is not a completed physical navigation trial.",
+    "goal": {
+      "state": "passed",
+      "start": [
+        -0.3408322086466499,
+        0.12985228053480743,
+        -0.5597777995712016,
+        -0.1949042943337563
+      ],
+      "global_seconds": 27.662824219998583,
+      "path_poses": 14,
+      "local_paths": 1,
+      "nonzero_commands": 402,
+      "route_status": [
+        "new_route",
+        "turn in place verified",
+        "tracking: verified",
+        "turn in place verified",
+        "hold: waiting for fresh body pose and measured MotionStatus.Height"
+      ],
+      "telemetry_only": true,
+      "basic": {
+        "MotionState": 17,
+        "Gait": 4097,
+        "Charge": 0,
+        "HES": 0,
+        "ControlUsageMode": 0,
+        "Direction": 0,
+        "OOA": 0,
+        "PowerManagement": 1,
+        "Sleep": 0,
+        "Version": "PRO",
+        "StatusCode": 0,
+        "ResetJointsZero": 0
+      },
+      "cancel_zero": true
+    },
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 1701,
+        "control": 5559,
+        "verification": 1,
+        "optimization": 0,
+        "candidates": 4,
+        "verified": 1,
+        "status": 6
+      },
+      "ingress_to_decision_ms": {
+        "count": 1701,
+        "p50": 19.308292998175602,
+        "p95": 35.75066600024002,
+        "p99": 50.93610200128751,
+        "max": 75.29777899981127
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 1701,
+        "p50": 14.17692099857959,
+        "p95": 28.261168001336046,
+        "p99": 40.110874997481005,
+        "max": 59.20712900115177
+      },
+      "map_update_ms": {
+        "count": 1701,
+        "p50": 4.368306003016187,
+        "p95": 9.695235003164271,
+        "p99": 15.645161998691037,
+        "max": 27.78185600254801
+      },
+      "collision_check_ms": {
+        "count": 1701,
+        "p50": 0.003360000846441835,
+        "p95": 0.12032399899908341,
+        "p99": 0.19847099974867888,
+        "max": 1.2840749986935407
+      },
+      "sensor_age_ms": {
+        "count": 1701,
+        "p50": 169.39663887023926,
+        "p95": 202.681303024292,
+        "p99": 218.1832790374756,
+        "max": 242.4924373626709
+      },
+      "replaced_frames": 124,
+      "dropped_frames": 5,
+      "active_trajectory_ingress_to_decision_ms": {
+        "count": 139,
+        "p50": 20.34541499961051,
+        "p95": 33.977380998476285,
+        "p99": 43.92037629899278,
+        "max": 51.31150500164949
+      },
+      "control_period_ms": {
+        "count": 5558,
+        "p50": 33.33258499878866,
+        "p95": 34.53835794935003,
+        "p99": 37.44015122942075,
+        "max": 46.43550300170318
+      },
+      "control_mean_hz": 30.000311613689938,
+      "periods_over_50_ms": 0,
+      "nonzero_commands": 414,
+      "control_compute_ms": {
+        "count": 5559,
+        "p50": 0.008929000614443794,
+        "p95": 0.01599999814061448,
+        "p99": 0.04478664021007718,
+        "max": 2.709050000703428
+      },
+      "control_publish_ms": {
+        "count": 5559,
+        "p50": 0.05248199886409566,
+        "p95": 0.13289360067574293,
+        "p99": 0.6116741800360631,
+        "max": 5.617052000161493
+      },
+      "candidate_verification_ms": {
+        "count": 1,
+        "p50": 14.531270000588847,
+        "p95": 14.531270000588847,
+        "p99": 14.531270000588847,
+        "max": 14.531270000588847
+      },
+      "accepted_candidates": 1
+    },
+    "localization": {
+      "state": "tracking",
+      "reason": "Live surfaces matched to saved mesh",
+      "time_ns": 1790761236417421862,
+      "frame": "se2_scan_map",
+      "source_frame": "nvblox_odom",
+      "mesh_sha256": "b6d75d0969285fb42e584d9a2600ffaf27ea58fc5aec5593fa01568e17ea5560",
+      "translation": [
+        -0.23775828315790273,
+        -0.1771102825143542,
+        0.005886013819462953
+      ],
+      "yaw": 0.03846391419682733,
+      "quality": {
+        "points": 868,
+        "median_m": 0.06493775781512093,
+        "clipped_mean_m": 0.10850052615920726,
+        "inliers_15cm": 0.7764976958525346,
+        "structure_points": 482,
+        "structure_inliers_15cm": 0.6721991701244814,
+        "compute_ms": 161.8605360017682
+      },
+      "source_age_s": 0.397336483001709
+    },
+    "limits": "Live speed caps: forward 0.15 m/s, lateral 0.10 m/s, yaw 0.30 rad/s. Raw sensor age excluded from callback-to-decision time. Rare decision times still exceed 50 ms. Only one local spline and a verified initial in-place turn were exercised; complete replanning latency is not established by this test."
+  },
+  "aligned_guard": {
+    "obstacle_to_block_ms": 48.882816001423635,
+    "obstacle_to_zero_ms": 63.89208600012353,
+    "alignment_expiry_zero": true,
+    "state": "passed",
+    "max_ingress_decision_ms": 74.69033499728539,
+    "p95_ingress_decision_ms": 25.803549000556814,
+    "nonzero_commands": 53,
+    "control_samples": 211,
+    "frames": 61,
+    "checks": [
+      "clear motion",
+      "new obstacle stop",
+      "stale odometry stop",
+      "empty path cancel"
+    ]
+  },
+  "localization_provenance": "Map transform is measured against saved mesh surfaces; current LIO publisher GID and mesh checksum bind a revalidated cache. New publishers and odometry resets invalidate the previous transform.",
+  "udp_mode_loopback": {
+    "state": "passed",
+    "velocity_hz": 30.01094832455684,
+    "packets": 136,
+    "mode_requests": 1,
+    "mode_restoration_tested": true,
+    "watchdog": "zero within 200 ms",
+    "destination": "127.0.0.1"
+  },
+  "udp_receiver_queue_fix": {
+    "scope": "Sender-only repair; 120 ms watchdog unchanged. Localhost emulation plus stationary live telemetry-only verification; physical walking remains unvalidated.",
+    "cause": "A depth-5 command queue could remain older than the 120 ms watchdog when drained at the publisher rate. Keep only the latest command.",
+    "before": {
+      "state": "failed",
+      "post_stall_fresh_packets": 0,
+      "stale_input_packets": 39,
+      "post_stale_fresh_packets": 0,
+      "last_status": [
+        {
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "command_age": 8.036071189086215,
+          "basic_age": 0.06666315999973449,
+          "motion_age": 0.06666315999973449,
+          "failed": false,
+          "basic": {
+            "ControlUsageMode": 1,
+            "HES": 0,
+            "MotionState": 17,
+            "Direction": 0,
+            "Sleep": 0
+          },
+          "telemetry_only": false,
+          "navigation_mode_requested": false,
+          "mode_attempts": 0,
+          "mode_confirmed": true
+        }
+      ],
+      "destination": "127.0.0.1"
+    },
+    "after": {
+      "state": "passed",
+      "post_stall_fresh_packets": 101,
+      "stale_input_packets": 39,
+      "post_stale_fresh_packets": 36,
+      "last_status": [
+        {
+          "command": [
+            0.1,
+            0.0,
+            0.0
+          ],
+          "command_age": 0.05794671135299723,
+          "basic_age": 0.03254788900085259,
+          "motion_age": 0.03254788900085259,
+          "failed": false,
+          "basic": {
+            "ControlUsageMode": 1,
+            "HES": 0,
+            "MotionState": 17,
+            "Direction": 0,
+            "Sleep": 0
+          },
+          "telemetry_only": false,
+          "navigation_mode_requested": false,
+          "mode_attempts": 0,
+          "mode_confirmed": true,
+          "stop_reason": null,
+          "command_receive": {
+            "received": 117,
+            "accepted": 94,
+            "rejected_stale": 23,
+            "rejected_future": 0,
+            "rejected_frame": 0,
+            "rejected_value": 0,
+            "last_age_s": 0.025351524353027344,
+            "last_rejection": "stale"
+          },
+          "velocity_packets": 235,
+          "nonzero_packets": 190,
+          "max_send_period_ms": 487.3674300033599
+        }
+      ],
+      "destination": "127.0.0.1"
+    },
+    "mode_loopback": {
+      "state": "passed",
+      "velocity_hz": 30.095318904015443,
+      "packets": 128,
+      "mode_requests": 1,
+      "mode_restoration_tested": true,
+      "watchdog": "zero within 200 ms",
+      "destination": "127.0.0.1"
+    },
+    "telemetry_only": {
+      "state": "passed",
+      "telemetry_frames": 6,
+      "outbound_heartbeats": 7,
+      "motion_packets": 0
+    },
+    "live_goal": {
+      "state": "passed",
+      "start": [
+        -0.3528688832853805,
+        0.13203433389407543,
+        -0.5592330246121158,
+        -0.1885618124712027
+      ],
+      "global_seconds": 23.212189567002497,
+      "path_poses": 14,
+      "local_paths": 1,
+      "nonzero_commands": 447,
+      "route_status": [
+        "new_route",
+        "turn in place verified",
+        "tracking: verified",
+        "turn in place verified"
+      ],
+      "telemetry_only": true,
+      "basic": {
+        "MotionState": 17,
+        "Gait": 4097,
+        "Charge": 0,
+        "HES": 0,
+        "ControlUsageMode": 0,
+        "Direction": 0,
+        "OOA": 0,
+        "PowerManagement": 1,
+        "Sleep": 0,
+        "Version": "PRO",
+        "StatusCode": 0,
+        "ResetJointsZero": 0
+      },
+      "cancel_zero": true
+    },
+    "live_session": "20260930_181658",
+    "live_receiver": {
+      "command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "command_age": 0.5486100960733893,
+      "basic_age": 0.3667672709998442,
+      "motion_age": 0.06668015299874241,
+      "failed": false,
+      "basic": {
+        "MotionState": 17,
+        "Gait": 4097,
+        "Charge": 0,
+        "HES": 0,
+        "ControlUsageMode": 0,
+        "Direction": 0,
+        "OOA": 0,
+        "PowerManagement": 1,
+        "Sleep": 0,
+        "Version": "PRO",
+        "StatusCode": 0,
+        "ResetJointsZero": 0
+      },
+      "telemetry_only": true,
+      "navigation_mode_requested": false,
+      "mode_attempts": 0,
+      "mode_confirmed": false,
+      "stop_reason": "telemetry_only",
+      "command_receive": {
+        "received": 2054,
+        "accepted": 2054,
+        "rejected_stale": 0,
+        "rejected_future": 0,
+        "rejected_frame": 0,
+        "rejected_value": 0,
+        "last_age_s": 0.049242258071899414,
+        "last_rejection": null
+      },
+      "velocity_packets": 0,
+      "nonzero_packets": 0,
+      "max_send_period_ms": 0.0
+    },
+    "cpu_tests": 90
+  },
+  "hardware_actuation_scope": "User-selected live goal sent low-speed velocity packets to M20. Operator reported only slight movement. This is not a completed navigation acceptance test.",
+  "live_execution_before_refresh": {
+    "session": "20260930_182405",
+    "scope": "After the command queue repair, before periodic replanning. Operator reported very little motion. Sensor guards remained enabled.",
+    "receiver": {
+      "command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "command_age": 0.7574627143039834,
+      "basic_age": 2.332720070000505,
+      "motion_age": 1.4336918940025498,
+      "failed": false,
+      "basic": {
+        "MotionState": 17,
+        "Gait": 4097,
+        "Charge": 0,
+        "HES": 0,
+        "ControlUsageMode": 1,
+        "Direction": 0,
+        "OOA": 0,
+        "PowerManagement": 1,
+        "Sleep": 0,
+        "Version": "PRO",
+        "StatusCode": 0,
+        "ResetJointsZero": 0
+      },
+      "telemetry_only": false,
+      "navigation_mode_requested": true,
+      "mode_attempts": 1,
+      "mode_confirmed": true,
+      "stop_reason": "stale_command",
+      "command_receive": {
+        "received": 9277,
+        "accepted": 9277,
+        "rejected_stale": 0,
+        "rejected_future": 0,
+        "rejected_frame": 0,
+        "rejected_value": 0,
+        "last_age_s": 0.024732351303100586,
+        "last_rejection": null
+      },
+      "velocity_packets": 18582,
+      "nonzero_packets": 3318,
+      "max_send_period_ms": 64.78040799993323
+    },
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 6085,
+        "control": 18546,
+        "verification": 180,
+        "optimization": 180,
+        "candidates": 181,
+        "verified": 136,
+        "status": 136
+      },
+      "ingress_to_decision_ms": {
+        "count": 6085,
+        "p50": 17.43787200030056,
+        "p95": 30.25947900168831,
+        "p99": 39.17334600133472,
+        "max": 66.34625300284824
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 6085,
+        "p50": 12.524009998742258,
+        "p95": 24.023202198441144,
+        "p99": 30.48533155873883,
+        "max": 52.946566000173334
+      },
+      "map_update_ms": {
+        "count": 6085,
+        "p50": 4.2632799995772075,
+        "p95": 7.314420001785038,
+        "p99": 11.464757801004447,
+        "max": 35.115847997076344
+      },
+      "collision_check_ms": {
+        "count": 6085,
+        "p50": 0.2175760018872097,
+        "p95": 0.37002240278525284,
+        "p99": 1.5234218392288288,
+        "max": 28.813885001000017
+      },
+      "sensor_age_ms": {
+        "count": 6085,
+        "p50": 166.4290428161621,
+        "p95": 198.61249923706055,
+        "p99": 208.95224571228025,
+        "max": 244.89903450012207
+      },
+      "replaced_frames": 83,
+      "dropped_frames": 4,
+      "active_trajectory_ingress_to_decision_ms": {
+        "count": 1349,
+        "p50": 17.25177299886127,
+        "p95": 28.365276599652134,
+        "p99": 36.93072116075199,
+        "max": 56.8923540013202
+      },
+      "control_period_ms": {
+        "count": 18545,
+        "p50": 33.332716000586515,
+        "p95": 33.978715599369025,
+        "p99": 35.9998268011259,
+        "max": 47.05091000141692
+      },
+      "control_mean_hz": 30.000712585903717,
+      "periods_over_50_ms": 0,
+      "nonzero_commands": 3708,
+      "control_compute_ms": {
+        "count": 18546,
+        "p50": 0.01292799788643606,
+        "p95": 0.026273002731613815,
+        "p99": 0.06764040062989775,
+        "max": 3.972359001636505
+      },
+      "control_publish_ms": {
+        "count": 18546,
+        "p50": 0.05368150050344411,
+        "p95": 0.10709925027185818,
+        "p99": 0.4108679499040585,
+        "max": 6.430425997677958
+      },
+      "candidate_verification_ms": {
+        "count": 180,
+        "p50": 49.987088999841944,
+        "p95": 77.18633379972744,
+        "p99": 96.54065401042332,
+        "max": 136.86909600073704
+      },
+      "accepted_candidates": 136,
+      "optimizer_ms": {
+        "count": 180,
+        "p50": 0.5222415,
+        "p95": 1.7017290999999997,
+        "p99": 2.9018239900000005,
+        "max": 3.046821
+      },
+      "optimizer_successes": 180,
+      "cloud_to_verified_trajectory_ms": {
+        "count": 136,
+        "p50": 131.68277550175844,
+        "p95": 197.00513800125918,
+        "p99": 214.20684805034398,
+        "max": 280.9397160017397
+      }
+    },
+    "packet_capture": {
+      "destination": "10.21.31.103:30000",
+      "velocity_packets": 276,
+      "nonzero_packets": 90,
+      "competing_velocity_senders_observed": 0,
+      "reported_forward_speed_peak_m_s": 0.11153102666139603
+    },
+    "finding": "Distance-triggered updates arrived about every 3 seconds; the independent controller correctly rejected trajectories older than 1 second. Most of the observed control status samples were stale_trajectory, with no occupied-path blocks in the 15-second diagnostic."
+  },
+  "periodic_local_replan_fix": {
+    "session": "20260930_183819",
+    "scope": "Stationary real sensor/map goal test with M20 telemetry-only; exact goal from the prior user-selected execution attempt. No velocity packets sent to hardware during this test. It demonstrates command continuity, not completed physical navigation.",
+    "max_replan_period_s": 0.3,
+    "unchanged_trajectory_lease_s": 1.0,
+    "goal": {
+      "state": "passed",
+      "start": [
+        -0.3380049428961797,
+        0.12195036748849367,
+        -0.5605083136104099,
+        -0.18578983837824267
+      ],
+      "global_seconds": 23.28074568300144,
+      "path_poses": 64,
+      "local_paths": 53,
+      "nonzero_commands": 761,
+      "route_status": [
+        "tracking: verified reference fallback",
+        "hold: optimizer left certified support corridor",
+        "tracking: verified reference fallback",
+        "hold: optimizer left certified support corridor",
+        "tracking: verified reference fallback",
+        "hold: optimizer left certified support corridor",
+        "tracking: verified reference fallback",
+        "hold: optimizer left certified support corridor",
+        "tracking: verified reference fallback",
+        "hold: optimizer left certified support corridor"
+      ],
+      "telemetry_only": true,
+      "basic": {
+        "MotionState": 17,
+        "Gait": 4097,
+        "Charge": 0,
+        "HES": 0,
+        "ControlUsageMode": 0,
+        "Direction": 0,
+        "OOA": 0,
+        "PowerManagement": 1,
+        "Sleep": 0,
+        "Version": "PRO",
+        "StatusCode": 0,
+        "ResetJointsZero": 0
+      },
+      "goal": [
+        4.086314678192139,
+        -1.1509630680084229,
+        -0.62
+      ],
+      "observation_seconds": 30.0,
+      "active_command_fraction": 0.8455555555555555,
+      "control_reasons": {
+        "tracking": 27,
+        "stale_trajectory": 2,
+        "stale_sensor_or_decision": 1
+      },
+      "sender": {
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_age": 0.007405276581266662,
+        "basic_age": 0.03431873999943491,
+        "motion_age": 0.03431873999943491,
+        "failed": false,
+        "basic": {
+          "MotionState": 17,
+          "Gait": 4097,
+          "Charge": 0,
+          "HES": 0,
+          "ControlUsageMode": 0,
+          "Direction": 0,
+          "OOA": 0,
+          "PowerManagement": 1,
+          "Sleep": 0,
+          "Version": "PRO",
+          "StatusCode": 0,
+          "ResetJointsZero": 0
+        },
+        "telemetry_only": true,
+        "navigation_mode_requested": false,
+        "mode_attempts": 0,
+        "mode_confirmed": false,
+        "stop_reason": "telemetry_only",
+        "command_receive": {
+          "received": 1168,
+          "accepted": 1168,
+          "rejected_stale": 0,
+          "rejected_future": 0,
+          "rejected_frame": 0,
+          "rejected_value": 0,
+          "last_age_s": 0.007355451583862305,
+          "last_rejection": null
+        },
+        "velocity_packets": 0,
+        "nonzero_packets": 0,
+        "max_send_period_ms": 0.0
+      },
+      "cancel_zero": true
+    },
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 1078,
+        "control": 3491,
+        "verification": 95,
+        "optimization": 95,
+        "candidates": 99,
+        "verified": 53,
+        "status": 66
+      },
+      "ingress_to_decision_ms": {
+        "count": 1078,
+        "p50": 18.568057001175475,
+        "p95": 29.186161450525102,
+        "p99": 39.07891189115618,
+        "max": 44.42669199852389
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 1078,
+        "p50": 13.945535500170081,
+        "p95": 23.31678634873242,
+        "p99": 30.45202897894342,
+        "max": 38.84711499995319
+      },
+      "map_update_ms": {
+        "count": 1078,
+        "p50": 4.265694000423537,
+        "p95": 7.082347152027068,
+        "p99": 10.197148740480772,
+        "max": 22.151839999423828
+      },
+      "collision_check_ms": {
+        "count": 1078,
+        "p50": 0.003328999810037203,
+        "p95": 0.2382334490903304,
+        "p99": 0.39068263260560376,
+        "max": 3.041509000468068
+      },
+      "sensor_age_ms": {
+        "count": 1078,
+        "p50": 168.49184036254883,
+        "p95": 196.43219709396362,
+        "p99": 208.9060926437378,
+        "max": 220.70550918579102
+      },
+      "replaced_frames": 74,
+      "dropped_frames": 3,
+      "active_trajectory_ingress_to_decision_ms": {
+        "count": 279,
+        "p50": 17.891923002025578,
+        "p95": 25.114635998033904,
+        "p99": 27.137341540365014,
+        "max": 31.80828900076449
+      },
+      "control_period_ms": {
+        "count": 3490,
+        "p50": 33.32944349858735,
+        "p95": 33.66114084783476,
+        "p99": 35.72123250865843,
+        "max": 283.08745400136104
+      },
+      "control_mean_hz": 29.93961391184211,
+      "periods_over_50_ms": 2,
+      "nonzero_commands": 761,
+      "control_compute_ms": {
+        "count": 3491,
+        "p50": 0.009152998245554045,
+        "p95": 0.023088499801815487,
+        "p99": 0.059361999956308774,
+        "max": 0.617812002019491
+      },
+      "control_publish_ms": {
+        "count": 3491,
+        "p50": 0.052321000111987814,
+        "p95": 0.12757200056512374,
+        "p99": 0.3266693005571134,
+        "max": 14.180695001414279
+      },
+      "candidate_verification_ms": {
+        "count": 95,
+        "p50": 48.71793799975421,
+        "p95": 76.79801400045106,
+        "p99": 84.13447577877379,
+        "max": 87.47247499923105
+      },
+      "accepted_candidates": 53,
+      "optimizer_ms": {
+        "count": 95,
+        "p50": 0.512369,
+        "p95": 1.4406007999999988,
+        "p99": 3.3059463200000025,
+        "max": 4.350448
+      },
+      "optimizer_successes": 95,
+      "cloud_to_verified_trajectory_ms": {
+        "count": 52,
+        "p50": 119.52049899991835,
+        "p95": 172.73772510015988,
+        "p99": 191.1394970496622,
+        "max": 196.80791499922634
+      }
+    },
+    "remaining": "Two stale-trajectory status samples and one stale-sensor/decision sample remained during the 30-second observation. Rejected geometric candidates remain subject to stop guards; do not extend the lease to conceal rejected paths."
+  },
+  "normal_speed_profile": {
+    "session": "20260930_185034",
+    "scope": "User requested normal walking speed. Forward/lateral/yaw limits raised to 0.50/0.25/0.60, trajectory lookahead 0.50 s. Live goal verification was telemetry-only with real sensors and saved map; no physical motion was commanded during this verification.",
+    "limits": {
+      "forward_m_s": 0.5,
+      "lateral_m_s": 0.25,
+      "yaw_rad_s": 0.6,
+      "lookahead_s": 0.5
+    },
+    "cpu_tests": 90,
+    "guard": {
+      "max_clear_forward_m_s": 0.39333333333333337,
+      "obstacle_to_block_ms": 21.981835998303723,
+      "obstacle_to_zero_ms": 32.9159359971527,
+      "alignment_expiry_zero": true,
+      "state": "passed",
+      "max_ingress_decision_ms": 80.51410000189207,
+      "p95_ingress_decision_ms": 10.335808001400437,
+      "nonzero_commands": 56,
+      "control_samples": 211,
+      "frames": 61,
+      "checks": [
+        "normal startup speed",
+        "new obstacle stop",
+        "stale odometry stop",
+        "empty path cancel"
+      ]
+    },
+    "udp": {
+      "state": "passed",
+      "velocity_hz": 30.05441280806752,
+      "packets": 138,
+      "tested_velocity": [
+        0.5,
+        0.25,
+        0.6
+      ],
+      "mode_requests": 1,
+      "mode_restoration_tested": true,
+      "watchdog": "zero within 200 ms",
+      "destination": "127.0.0.1"
+    },
+    "live_goal": {
+      "state": "passed",
+      "start": [
+        -0.3353878787243099,
+        0.11494672303882941,
+        -0.5622435716070892,
+        -0.18087617789755434
+      ],
+      "global_seconds": 24.681568695999886,
+      "path_poses": 63,
+      "local_paths": 63,
+      "nonzero_commands": 600,
+      "route_status": [
+        "new_route",
+        "tracking: verified reference fallback",
+        "tracking: verified"
+      ],
+      "telemetry_only": true,
+      "basic": {
+        "MotionState": 17,
+        "Gait": 4097,
+        "Charge": 0,
+        "HES": 0,
+        "ControlUsageMode": 0,
+        "Direction": 0,
+        "OOA": 0,
+        "PowerManagement": 1,
+        "Sleep": 0,
+        "Version": "PRO",
+        "StatusCode": 0,
+        "ResetJointsZero": 0
+      },
+      "goal": [
+        3.9453487396240234,
+        -1.1307165622711182,
+        -0.62
+      ],
+      "observation_seconds": 20.0,
+      "active_command_fraction": 1.0,
+      "active_forward_m_s": {
+        "median": 0.34688689746460766,
+        "max": 0.37019778899736006
+      },
+      "control_reasons": {
+        "tracking": 20
+      },
+      "sender": {
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_age": 0.006066866404580651,
+        "basic_age": 0.16760372000135249,
+        "motion_age": 0.06644386100015254,
+        "failed": false,
+        "basic": {
+          "MotionState": 17,
+          "Gait": 4097,
+          "Charge": 0,
+          "HES": 0,
+          "ControlUsageMode": 0,
+          "Direction": 0,
+          "OOA": 0,
+          "PowerManagement": 1,
+          "Sleep": 0,
+          "Version": "PRO",
+          "StatusCode": 0,
+          "ResetJointsZero": 0
+        },
+        "telemetry_only": true,
+        "navigation_mode_requested": false,
+        "mode_attempts": 0,
+        "mode_confirmed": false,
+        "stop_reason": "telemetry_only",
+        "command_receive": {
+          "received": 1036,
+          "accepted": 1036,
+          "rejected_stale": 0,
+          "rejected_future": 0,
+          "rejected_frame": 0,
+          "rejected_value": 0,
+          "last_age_s": 0.006013393402099609,
+          "last_rejection": null
+        },
+        "velocity_packets": 0,
+        "nonzero_packets": 0,
+        "max_send_period_ms": 0.0
+      },
+      "cancel_zero": true
+    },
+    "metrics": {
+      "units": "milliseconds unless otherwise stated",
+      "counts": {
+        "perception": 991,
+        "control": 3255,
+        "verification": 63,
+        "optimization": 63,
+        "candidates": 67,
+        "verified": 63,
+        "status": 4
+      },
+      "ingress_to_decision_ms": {
+        "count": 991,
+        "p50": 19.593945999076823,
+        "p95": 30.70314050091838,
+        "p99": 39.50966489974236,
+        "max": 66.04029500158504
+      },
+      "preprocess_including_pose_wait_ms": {
+        "count": 991,
+        "p50": 14.798199998040218,
+        "p95": 24.494881499776966,
+        "p99": 31.450650699844143,
+        "max": 52.19044800105621
+      },
+      "map_update_ms": {
+        "count": 991,
+        "p50": 4.333651999331778,
+        "p95": 7.783721001032973,
+        "p99": 11.00621380064696,
+        "max": 15.50875199973234
+      },
+      "collision_check_ms": {
+        "count": 991,
+        "p50": 0.0031039999157655984,
+        "p95": 0.22981549955147784,
+        "p99": 0.3925964007066798,
+        "max": 1.1197499989066273
+      },
+      "sensor_age_ms": {
+        "count": 991,
+        "p50": 168.9295768737793,
+        "p95": 198.59814643859863,
+        "p99": 210.02779006958016,
+        "max": 236.25755310058594
+      },
+      "replaced_frames": 81,
+      "dropped_frames": 6,
+      "active_trajectory_ingress_to_decision_ms": {
+        "count": 200,
+        "p50": 19.5157680009288,
+        "p95": 30.853113599368946,
+        "p99": 34.40428809000877,
+        "max": 47.90121400219505
+      },
+      "control_period_ms": {
+        "count": 3254,
+        "p50": 33.33278250102012,
+        "p95": 34.26405560076091,
+        "p99": 36.285322939475,
+        "max": 170.74977900119848
+      },
+      "control_mean_hz": 29.96166814172464,
+      "periods_over_50_ms": 2,
+      "nonzero_commands": 600,
+      "control_compute_ms": {
+        "count": 3255,
+        "p50": 0.008672002877574414,
+        "p95": 0.02439140080241483,
+        "p99": 0.08802348173048828,
+        "max": 2.638137997564627
+      },
+      "control_publish_ms": {
+        "count": 3255,
+        "p50": 0.050881000788649544,
+        "p95": 0.1375569991068914,
+        "p99": 0.459813220295474,
+        "max": 16.986754999379627
+      },
+      "candidate_verification_ms": {
+        "count": 63,
+        "p50": 49.597656001424184,
+        "p95": 83.51965879774069,
+        "p99": 92.12376429903088,
+        "max": 92.83957599836867
+      },
+      "accepted_candidates": 63,
+      "optimizer_ms": {
+        "count": 63,
+        "p50": 0.892414,
+        "p95": 2.6376829999999996,
+        "p99": 4.1563157200000065,
+        "max": 5.57171
+      },
+      "optimizer_successes": 63,
+      "cloud_to_verified_trajectory_ms": {
+        "count": 63,
+        "p50": 133.54572900061612,
+        "p95": 221.4753999011009,
+        "p99": 234.528650199718,
+        "max": 239.6347469984903
+      }
+    },
+    "previous_slow_profile_available": true
+  },
+  "known_open_issue": {
+    "date": "2026-09-30",
+    "state": "unresolved",
+    "operator_observation": "M20 moved through two short route sections and then stalled; the nearby area was clear.",
+    "observed": "Localization and UDP were fresh. Saved-mesh validation rejected the direct next-segment connection; fallback repeatedly selected a nearby reference point and issued small corrections.",
+    "repair_applied": false,
+    "publication_scope": "Current implementation, bilingual documentation, demo and prior validation records; investigation paused at user request."
+  }
+}

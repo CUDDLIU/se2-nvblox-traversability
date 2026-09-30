@@ -9,3 +9,5 @@
 robot_model/upstream/** -text -whitespace
 terrain_variants/multi_lidar/reference/** -text -whitespace
 terrain_variants/weighting/weighting_function_impl.h -text -whitespace
+# Integration patches include context from upstream files with mixed line endings.
+scanplanner_integration/patches/** -text -whitespace

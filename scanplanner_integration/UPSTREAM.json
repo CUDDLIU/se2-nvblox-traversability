@@ -1,0 +1,7 @@
+{
+  "url": "https://github.com/wuyi2121/SCAN-Planner.git",
+  "branch": "ros2-community",
+  "commit": "d0b921c9b05a6d291d144d60882b2e0e88d2c0e0",
+  "license": "Apache-2.0",
+  "note": "ROS 2 community port, not the authors' original ROS 1 release"
+}

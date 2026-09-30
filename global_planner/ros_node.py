@@ -16,10 +16,11 @@ from geometry import read_mesh
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.clock import Clock, ClockType
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, TransformStamped
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
-from nav_msgs.msg import Path as RosPath
+from nav_msgs.msg import Path as RosPath, Odometry
 from std_msgs.msg import ColorRGBA, String
 from std_srvs.srv import Trigger
 from visualization_msgs.msg import Marker, MarkerArray
@@ -30,11 +31,16 @@ def point(xyz):
 
 
 class GlobalPlannerNode(Node):
-    def __init__(self, directory):
+    def __init__(self, directory, robot_start=False, runtime_directory=None, frame=None):
         super().__init__('se2_global_planner')
+        self.robot_start = robot_start
+        self.robot_pose = None
+        self.robot_height = None
+        self.robot_pose_at = self.robot_height_at = 0.
         self.directory = Path(directory)
+        self.runtime_directory = Path(runtime_directory) if runtime_directory else self.directory/'runtime'
         self.planner = Planner(directory)
-        self.frame = self.planner.document['frame']
+        self.frame = frame or self.planner.document['frame']
         self.static_tf = StaticTransformBroadcaster(self)
         origin = TransformStamped()
         origin.header.frame_id = self.frame
@@ -56,12 +62,18 @@ class GlobalPlannerNode(Node):
         self.pose_pub = self.create_publisher(MarkerArray, '/se2_global/query_markers', retained)
         self.path_pub = self.create_publisher(RosPath, '/se2_global/path', retained)
         self.status_pub = self.create_publisher(String, '/se2_global/status', retained)
+        if robot_start:
+            from rclpy.qos import qos_profile_sensor_data
+            self.create_subscription(Odometry, '/nvblox_lio/odom', self.body_pose, qos_profile_sensor_data)
+            self.create_subscription(String, '/nvblox_robot/motion_status/raw', self.body_height, 10)
         self.create_subscription(PointStamped, '/clicked_point', self.clicked, 10)
         self.create_subscription(PointStamped, '/se2_global/start', self.start_clicked, 10)
         self.create_subscription(PoseStamped, '/se2_global/goal_pose', self.pose_goal, 10)
         self.create_service(Trigger, '/se2_global/pick_start', self.pick_start_service)
         self.create_service(Trigger, '/se2_global/reset_start', self.reset_start_service)
-        self.create_timer(.1, self.poll)
+        # Query completion must be serviced while a bag's /clock is paused.
+        self.poll_clock = Clock(clock_type=ClockType.STEADY_TIME)
+        self.create_timer(.1, self.poll, clock=self.poll_clock)
         self.publish_map()
         self.publish_query()
         self.status('ready', '就绪：在 RViz 选择 Publish Point，点击目标楼层的绿色或橙色地面。')
@@ -80,7 +92,7 @@ class GlobalPlannerNode(Node):
                    start=self.start.tolist(), generation=self.generation, control_outputs='none', **extra)
         self.status_pub.publish(String(data=json.dumps(doc, ensure_ascii=False)))
         self.get_logger().info(message)
-        target = self.directory / 'runtime'
+        target = self.runtime_directory
         target.mkdir(exist_ok=True)
         tmp = target / 'status.tmp'
         tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=2))
@@ -181,7 +193,34 @@ class GlobalPlannerNode(Node):
         yaw=math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))
         self.enqueue([p.x,p.y,p.z],yaw)
 
+    def source_time(self):
+        # A paused bag retains a valid planning start; motion-control watchdogs
+        # separately use wall time and remain stopped while playback is paused.
+        return (self.get_clock().now().nanoseconds/1e9
+                if self.get_parameter('use_sim_time').value else time.monotonic())
+
+    def body_pose(self, msg):
+        if msg.header.frame_id != self.frame or msg.child_frame_id != 'base_link_dog': return
+        p,q=msg.pose.pose.position,msg.pose.pose.orientation
+        value=np.asarray([p.x,p.y,p.z,math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))])
+        if np.isfinite(value).all():
+            self.robot_pose=value;self.robot_pose_at=self.source_time()
+
+    def body_height(self, msg):
+        try:
+            height=float(json.loads(msg.data)['PatrolDevice']['Items']['MotionStatus']['Height'])
+            if .2 < height < 1.:
+                self.robot_height=height;self.robot_height_at=self.source_time()
+        except (ValueError,KeyError,TypeError): pass
+
     def enqueue(self,goal,yaw=None):
+        if self.robot_start:
+            now=self.source_time()
+            if self.robot_pose is None or self.robot_height is None or now-self.robot_pose_at>.3 or now-self.robot_height_at>.6:
+                self.generation+=1;self.pending=None;self.clear_path()
+                self.status('invalid_start','等待当前机身定位和实测机身高度；不使用旧的 bag 终点。')
+                return
+            self.start=self.robot_pose.copy();self.start[2]-=self.robot_height
         if not np.isfinite(goal).all():
             self.generation+=1;self.pending=None;self.clear_path()
             self.status('invalid_query','目标坐标必须为有限值。')
@@ -247,8 +286,8 @@ class GlobalPlannerNode(Node):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('map',type=Path);args=parser.parse_args()
-    rclpy.init();node=GlobalPlannerNode(args.map)
+    parser=argparse.ArgumentParser();parser.add_argument('map',type=Path);parser.add_argument('--robot-start',action='store_true');parser.add_argument('--runtime',type=Path);parser.add_argument('--frame');args,ros=parser.parse_known_args()
+    rclpy.init(args=ros);node=GlobalPlannerNode(args.map,args.robot_start,args.runtime,args.frame)
     try:rclpy.spin(node)
     except KeyboardInterrupt:pass
     finally:

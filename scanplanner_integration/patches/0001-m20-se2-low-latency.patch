@@ -1,0 +1,298 @@
+diff --git a/src/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h b/src/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
+index f181f3f..17ec369 100644
+--- a/src/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
++++ b/src/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
+@@ -76,6 +76,7 @@ namespace scan_planner
+ 
+     AStar::Ptr a_star_;
+     std::vector<Eigen::Vector3d> ref_pts_;
++    Eigen::MatrixXd route_guide_;
+ 
+     std::vector<std::vector<Eigen::Vector3d>> initControlPoints(Eigen::MatrixXd &init_points, bool flag_first_init = true);
+     bool BsplineOptimizeTrajRebound(Eigen::MatrixXd &optimal_points, double ts); // must be called after initControlPoints()
+diff --git a/src/planner/bspline_opt/src/bspline_optimizer.cpp b/src/planner/bspline_opt/src/bspline_optimizer.cpp
+index c2c9b89..ff124d3 100644
+--- a/src/planner/bspline_opt/src/bspline_optimizer.cpp
++++ b/src/planner/bspline_opt/src/bspline_optimizer.cpp
+@@ -1167,6 +1167,12 @@ namespace scan_planner
+     Eigen::MatrixXd grad_3D = lambda1_ * g_smoothness + new_lambda2_ * g_distance +
+                               lambda3_ * g_feasibility;
+     grad_3D.row(2).setZero();
++    if (route_guide_.cols() == cps_.points.cols()) {
++      const double weight=10.;
++      Eigen::MatrixXd delta=cps_.points-route_guide_;
++      f_combine += weight*delta.squaredNorm();
++      grad_3D += 2*weight*delta;
++    }
+     memcpy(grad, grad_3D.data() + 3 * order_, n * sizeof(grad[0]));
+   }
+ 
+diff --git a/src/planner/plan_env/include/plan_env/grid_map.h b/src/planner/plan_env/include/plan_env/grid_map.h
+index 19b77c5..c375929 100644
+--- a/src/planner/plan_env/include/plan_env/grid_map.h
++++ b/src/planner/plan_env/include/plan_env/grid_map.h
+@@ -177,6 +177,12 @@ public:
+   inline bool isKnownFree(const Eigen::Vector3i& id);
+   inline bool isKnownOccupied(const Eigen::Vector3i& id);
+ 
++  double last_cloud_stamp = 0.;
++  // Integration API: synchronised body-aligned cloud and acquisition-time pose.
++  void ingest(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& cloud,
++              const nav_msgs::msg::Odometry::ConstSharedPtr& pose) {
++    sensorPoseCallback(pose); slidingMapFrameCallback(pose); cloudCallback(cloud);
++  }
+   void initMap(rclcpp::Node* node);
+ 
+   void publishMap();
+diff --git a/src/planner/plan_env/src/grid_map.cpp b/src/planner/plan_env/src/grid_map.cpp
+index 3efd86d..2d2b253 100644
+--- a/src/planner/plan_env/src/grid_map.cpp
++++ b/src/planner/plan_env/src/grid_map.cpp
+@@ -152,7 +152,7 @@ void GridMap::initMap(rclcpp::Node *node)
+         "sensor_pose", rclcpp::SensorDataQoS(),
+         std::bind(&GridMap::sensorPoseCallback, this, std::placeholders::_1));
+     cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
+-        "cloud", rclcpp::SensorDataQoS(),
++        "cloud", rclcpp::SensorDataQoS().keep_last(1),
+         std::bind(&GridMap::cloudCallback, this, std::placeholders::_1));
+   }
+ 
+@@ -162,7 +162,7 @@ void GridMap::initMap(rclcpp::Node *node)
+ 
+   occ_timer_ = node_->create_wall_timer(std::chrono::milliseconds(50),
+                                         std::bind(&GridMap::updateOccupancyCallback, this));
+-  vis_timer_ = node_->create_wall_timer(std::chrono::milliseconds(50),
++  vis_timer_ = node_->create_wall_timer(std::chrono::milliseconds(200),
+                                         std::bind(&GridMap::visCallback, this));
+ 
+   map_pub_ = node_->create_publisher<sensor_msgs::msg::PointCloud2>("grid_map/occupancy", rclcpp::SensorDataQoS());
+@@ -935,6 +935,9 @@ void GridMap::cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
+ 
+   md_.use_cloud_update_ = true;
+   md_.occ_need_update_ = true;
++  last_cloud_stamp = img->header.stamp.sec + img->header.stamp.nanosec*1e-9;
++  // No extra 0--50 ms timer wait on the lidar path.
++  updateOccupancyCallback();
+ }
+ 
+ void GridMap::publishMap()
+diff --git a/src/planner/plan_manage/include/plan_manage/planner_manager.h b/src/planner/plan_manage/include/plan_manage/planner_manager.h
+index 970d12b..46e30e9 100644
+--- a/src/planner/plan_manage/include/plan_manage/planner_manager.h
++++ b/src/planner/plan_manage/include/plan_manage/planner_manager.h
+@@ -40,6 +40,7 @@ namespace scan_planner
+     LocalTrajData local_data_;
+     GlobalTrajData global_data_;
+     GridMap::Ptr grid_map_;
++    std::vector<Eigen::Vector3d> reference_points_;
+ 
+   private:
+     rclcpp::Node *node_{nullptr};
+diff --git a/src/planner/plan_manage/include/plan_manage/scan_replan_fsm.h b/src/planner/plan_manage/include/plan_manage/scan_replan_fsm.h
+index 55f2130..5473a9f 100644
+--- a/src/planner/plan_manage/include/plan_manage/scan_replan_fsm.h
++++ b/src/planner/plan_manage/include/plan_manage/scan_replan_fsm.h
+@@ -9,6 +9,7 @@
+ #include <nav_msgs/msg/path.hpp>
+ #include <rclcpp/rclcpp.hpp>
+ #include <std_msgs/msg/bool.hpp>
++#include <std_msgs/msg/float64_multi_array.hpp>
+ #include <vector>
+ #include <visualization_msgs/msg/marker.hpp>
+ 
+@@ -52,7 +53,7 @@ namespace scan_planner
+ 
+     /* parameters */
+     int navi_mode_; // 1 manual select, 2 hard code
+-    double no_replan_thresh_, replan_thresh_;
++    double no_replan_thresh_, replan_thresh_, max_replan_period_;
+     std::vector<Eigen::Vector3d> preset_waypoints_;
+     int waypoint_num_;
+     double planning_horizon_;
+@@ -94,6 +95,7 @@ namespace scan_planner
+     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
+     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr go2_execution_frozen_sub_;
+     rclcpp::Publisher<scan_planner_msgs::msg::Bspline>::SharedPtr bspline_pub_;
++    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr timing_pub_;
+     rclcpp::Publisher<scan_planner_msgs::msg::DataDisp>::SharedPtr data_disp_pub_;
+     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr self_inflation_pub_;
+ 
+diff --git a/src/planner/plan_manage/src/planner_manager.cpp b/src/planner/plan_manage/src/planner_manager.cpp
+index 34c8c16..455e664 100644
+--- a/src/planner/plan_manage/src/planner_manager.cpp
++++ b/src/planner/plan_manage/src/planner_manager.cpp
+@@ -248,11 +248,33 @@ namespace scan_planner
+       }
+     } while (flag_regenerate);
+ 
+-    applyLinearZReference(point_set, start_pt(2), local_target_pt(2));
++    if (!reference_points_.empty()) {
++      // Sample the ordered 3-D route, including landings. A straight endpoint
++      // initializer (or linear Z overwrite) can cut a stairwell / narrow doorway.
++      std::vector<Eigen::Vector3d> route{start_pt};
++      for (const auto& p : reference_points_)
++        if ((p-route.back()).norm() > .025) route.push_back(p);
++      std::vector<double> arc(route.size(), 0.);
++      for (size_t i=1;i<route.size();++i) arc[i]=arc[i-1]+(route[i]-route[i-1]).norm();
++      if (arc.back() < .03) return false;
++      const int count=std::max(7, int(std::ceil(arc.back()/.08))+1);
++      point_set.clear();size_t segment=0;
++      for (int i=0;i<count;++i) {
++        double distance=arc.back()*i/(count-1);
++        while(segment+2<arc.size() && distance>arc[segment+1]) ++segment;
++        double u=(distance-arc[segment])/(arc[segment+1]-arc[segment]);
++        point_set.push_back(route[segment]+u*(route[segment+1]-route[segment]));
++      }
++      ts=arc.back()/(std::max(.05,pp_.max_vel_*.65)*(count-1));
++      start_end_derivatives={start_vel,Eigen::Vector3d::Zero(),start_acc,Eigen::Vector3d::Zero()};
++    } else {
++      applyLinearZReference(point_set, start_pt(2), local_target_pt(2));
++    }
+ 
+     Eigen::MatrixXd ctrl_pts;
+     UniformBspline::parameterizeToBspline(ts, point_set, start_end_derivatives, ctrl_pts);
+ 
++    bspline_optimizer_rebound_->route_guide_ = reference_points_.empty() ? Eigen::MatrixXd() : ctrl_pts;
+     vector<vector<Eigen::Vector3d>> a_star_paths;
+     a_star_paths = bspline_optimizer_rebound_->initControlPoints(ctrl_pts, true);
+ 
+diff --git a/src/planner/plan_manage/src/scan_replan_fsm.cpp b/src/planner/plan_manage/src/scan_replan_fsm.cpp
+index 9f6aa4e..0a980c3 100644
+--- a/src/planner/plan_manage/src/scan_replan_fsm.cpp
++++ b/src/planner/plan_manage/src/scan_replan_fsm.cpp
+@@ -36,6 +36,7 @@ namespace scan_planner
+     navi_mode_ = load_parameter<int>(node_, "fsm.navi_mode", -1);
+     replan_thresh_ = load_parameter<double>(node_, "fsm.thresh_replan", -1.0);
+     no_replan_thresh_ = load_parameter<double>(node_, "fsm.thresh_no_replan", -1.0);
++    max_replan_period_ = load_parameter<double>(node_, "fsm.max_replan_period", 0.0);
+     planning_horizon_ = load_parameter<double>(node_, "fsm.planning_horizon", -1.0);
+     emergency_time_ = load_parameter<double>(node_, "fsm.emergency_time", 1.0);
+     enable_fail_safe_ = load_parameter<bool>(node_, "fsm.fail_safe", true);
+@@ -69,7 +70,7 @@ namespace scan_planner
+     /* callback */
+     exec_timer_ = node_->create_wall_timer(std::chrono::milliseconds(10),
+                                            std::bind(&SCANReplanFSM::execFSMCallback, this));
+-    safety_timer_ = node_->create_wall_timer(std::chrono::milliseconds(50),
++    safety_timer_ = node_->create_wall_timer(std::chrono::milliseconds(10),
+                                              std::bind(&SCANReplanFSM::checkCollisionCallback, this));
+     odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+         "body_pose", rclcpp::SensorDataQoS(),
+@@ -78,6 +79,7 @@ namespace scan_planner
+         "planning/go2_execution_frozen", 10,
+         std::bind(&SCANReplanFSM::go2ExecutionFrozenCallback, this, std::placeholders::_1));
+ 
++    timing_pub_ = node_->create_publisher<std_msgs::msg::Float64MultiArray>("planning/replan_timing", 100);
+     bspline_pub_ = node_->create_publisher<scan_planner_msgs::msg::Bspline>("planning/bspline", 10);
+     data_disp_pub_ = node_->create_publisher<scan_planner_msgs::msg::DataDisp>("planning/data_display", 100);
+     self_inflation_pub_ = node_->create_publisher<visualization_msgs::msg::Marker>(
+@@ -89,7 +91,7 @@ namespace scan_planner
+           std::bind(&SCANReplanFSM::rvizGoalCallback, this, std::placeholders::_1));
+     else if (navi_mode_ == NAVI_MODE::REFERENCE_PATH)
+       path_sub_ = node_->create_subscription<nav_msgs::msg::Path>(
+-          "initial_path", 1, std::bind(&SCANReplanFSM::pathCallback, this, std::placeholders::_1));
++          "initial_path", rclcpp::QoS(1).reliable().transient_local(), std::bind(&SCANReplanFSM::pathCallback, this, std::placeholders::_1));
+     else if (navi_mode_ == NAVI_MODE::PRESET_TARGET)
+       RCLCPP_INFO(node_->get_logger(), "Preset waypoint mode will start after the first odometry message");
+     else
+@@ -202,6 +204,7 @@ namespace scan_planner
+     }
+ 
+     end_pt_ = waypoints.back();
++    planner_manager_->reference_points_ = waypoints;
+ 
+     for (size_t i = 0; i < waypoints.size(); i++)
+     {
+@@ -338,26 +341,28 @@ namespace scan_planner
+ 
+   void SCANReplanFSM::pathCallback(const nav_msgs::msg::Path::ConstSharedPtr &msg)
+   {
+-    if (!msg || msg->poses.empty())
+-    {
+-      RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+-                           "Received empty initial_path; ignoring");
++    if (!msg || msg->poses.empty()) {
++      have_target_ = false; have_new_target_ = false; trigger_ = false;
++      if (have_odom_) callEmergencyStop(odom_pos_);
++      changeFSMExecState(WAIT_TARGET, "CANCEL");
+       return;
+     }
+-
++    if (!have_odom_ || msg->header.frame_id != self_inflation_frame_id_) {
++      RCLCPP_WARN(node_->get_logger(), "Reference rejected: no odometry or wrong frame");
++      return;
++    }
++    std::vector<Eigen::Vector3d> waypoints;
++    Eigen::Vector3d previous = odom_pos_;
++    for (const auto& pose_stamped : msg->poses) {
++      const auto& v = pose_stamped.pose.position;
++      // Bridge supplies body-reference Z. No second floor-to-body offset.
++      Eigen::Vector3d wp(v.x, v.y, v.z);
++      if (!wp.allFinite()) return;
++      if ((wp - previous).norm() < .025) continue; // zero-duration polynomial
++      waypoints.push_back(wp); previous = wp;
++    }
++    if (waypoints.empty()) return; // Pure yaw is handled by the SE(2) controller.
+     trigger_ = true;
+-
+-    std::vector<Eigen::Vector3d> waypoints;
+-    waypoints.reserve(msg->poses.size());
+-
+-    for (const auto& pose_stamped : msg->poses)
+-    {
+-      Eigen::Vector3d wp;
+-      wp(0) = pose_stamped.pose.position.x;
+-      wp(1) = pose_stamped.pose.position.y;
+-      wp(2) = pose_stamped.pose.position.z + body_height_; // Adjust for body height
+-      waypoints.push_back(wp);
+-    }
+     bool success = planGlobalTrajByWaypoints(waypoints);
+ 
+     if (success)
+@@ -405,7 +410,10 @@ namespace scan_planner
+     odom_orient_.z() = msg->pose.pose.orientation.z;
+ 
+     have_odom_ = true;
+-    publishSelfInflationMarker();
++    static auto last_marker = node_->now();
++    if ((node_->now() - last_marker).seconds() >= .2) {
++      publishSelfInflationMarker(); last_marker = node_->now();
++    }
+     if (navi_mode_ == NAVI_MODE::PRESET_TARGET && !preset_started_)
+     {
+       preset_started_ = true;
+@@ -615,6 +623,17 @@ namespace scan_planner
+       double t_cur = (time_now - info->start_time_).seconds();
+       t_cur = min(info->duration_, t_cur);
+ 
++      // Distance-triggered replanning can take seconds at low speed. Refresh
++      // before the external controller's lease expires, using measured goal
++      // distance so predicted progress cannot finish an unexecuted path.
++      if (max_replan_period_ > 0.0 &&
++          (time_now - info->start_time_).seconds() >= max_replan_period_ &&
++          (end_pt_ - odom_pos_).norm() >= no_replan_thresh_)
++      {
++        changeFSMExecState(REPLAN_TRAJ, "PERIODIC_REFRESH");
++        break;
++      }
++
+       Eigen::Vector3d pos = info->position_traj_.evaluateDeBoorT(t_cur);
+ 
+       if (isWaypointSequenceMode() &&
+@@ -845,13 +864,16 @@ namespace scan_planner
+   bool SCANReplanFSM::callReboundReplan(bool flag_use_poly_init, bool flag_randomPolyTraj)
+   {
+ 
++    auto began = std::chrono::steady_clock::now();
+     getLocalTarget();
+ 
+     bool plan_success =
+         planner_manager_->reboundReplan(start_pt_, start_vel_, start_acc_, local_target_pt_, local_target_vel_, (have_new_target_ || flag_use_poly_init), flag_randomPolyTraj);
+     have_new_target_ = false;
+ 
+-    cout << "final_plan_success=" << plan_success << endl;
++    std_msgs::msg::Float64MultiArray timing;
++    timing.data = {std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-began).count(), plan_success ? 1. : 0., planner_manager_->grid_map_->last_cloud_stamp, std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(), double(planner_manager_->local_data_.traj_id_)};
++    timing_pub_->publish(timing);
+ 
+     if (plan_success)
+     {

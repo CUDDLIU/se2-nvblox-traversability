@@ -8,7 +8,6 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-[![Core checks](https://github.com/CUDDLIU/se2-nvblox-traversability/actions/workflows/core.yml/badge.svg)](https://github.com/CUDDLIU/se2-nvblox-traversability/actions/workflows/core.yml)
 [![ROS 2 Humble](https://img.shields.io/badge/ROS_2-Humble-22314E)](https://docs.ros.org/en/humble/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
@@ -22,9 +21,9 @@ SE(2) Nvblox Traversability 将 [nvblox](https://github.com/nvidia-isaac/nvblox)
 
 ## 演示
 
-[![RViz 三维重建与通行性演示](docs/media/demo-preview.gif)](https://github.com/CUDDLIU/se2-nvblox-traversability/raw/refs/heads/main/docs/media/demo-full.mp4)
+[![RViz 三维重建与通行性演示](docs/media/demo-preview.gif)](docs/media/demo-full.mp4)
 
-**[观看或下载完整演示 · 3 分 56 秒 · MP4](https://github.com/CUDDLIU/se2-nvblox-traversability/raw/refs/heads/main/docs/media/demo-full.mp4)**
+**[观看或下载完整演示 · 3 分 56 秒 · MP4](docs/media/demo-full.mp4)**
 
 录制于 2026 年 9 月 30 日。动态预览选取两个片段，保持原速；完整视频保留全部录屏内容。彩虹色表示 Mesh 高度，绿色和橙色表示当前通行性，蓝色区域保留历史结果。
 
@@ -45,7 +44,7 @@ SE(2) Nvblox Traversability 将 [nvblox](https://github.com/nvidia-isaac/nvblox)
 - **点选跨楼层目标。** 从整包构建静态多层通行图，在 RViz 点击三维目标，经 A* → 路径拉直 → 朝向 A* 得到通过楼梯的已检查路径。[使用方法及与 SE(2) NavMesh 论文的对应关系 →](docs/global-planning.md#简体中文)
 - **统一 RViz 显示与机身状态。** 显示高度着色 Mesh、通行栅格与 M20 实测关节模型；回放时暂停实时重建视图，并提供恢复按钮。
 
-本项目用于研究与系统集成，输出几何分析和可视化，不发送机器人运动指令。接入规划器前请阅读[当前限制](#当前限制)。
+本项目用于研究与系统集成。几何分析和回放不发送运动指令；可选的 M20 接入仅在显式指定 `--execute` 后启用硬件输出。实时路径恢复仍在调试，请参阅[待解决问题](docs/scanplanner-integration.md#known-issue)和[当前限制](#当前限制)。
 
 ## 快速开始
 
@@ -54,7 +53,7 @@ SE(2) Nvblox Traversability 将 [nvblox](https://github.com/nvidia-isaac/nvblox)
 依赖：Linux、Python 3.10+、支持 OpenMP 的 C++17 编译器，以及 [requirements-core.txt](requirements-core.txt) 中的 Python 包。
 
 ```bash
-git clone https://github.com/CUDDLIU/se2-nvblox-traversability.git
+git clone https://arcusgit.vip.cpolar.cn/liuzhenghao/se2-nvblox-traversability.git
 cd se2-nvblox-traversability
 
 # Ubuntu / Debian 编译依赖
@@ -82,6 +81,8 @@ bash /home/nvidia/scanplanner_test/se2_terrain_check/start_after_boot.sh
 选中 bag，启用重新建图，选择传感器输入，再打开 RViz 回放。默认使用带去畸变的纯雷达方案；重建使用**包内已录位姿**，不会重新估计里程计。点击 **恢复实时重建** 返回实时输入。
 
 对于已构建全局图的 bag，点击 **全局路径规划**，再在 RViz 用 **Publish Point** 点击目标楼层地面。默认起点为录制终点，详见[全局规划说明](docs/global-planning.md#简体中文)。
+
+新增 [ScanPlanner + M20 接入](docs/scanplanner-integration.md)：源码与构建目录均位于本项目内，保留路径高度与机身朝向，提供独立 bag 回放、30 Hz 控制输出和逐帧延迟日志。在已部署的 Jetson 上运行 `bash scanplanner_integration/start.sh`；默认回放不会向机器狗发送运动指令。
 
 全新机器还需要 ROS 2/nvblox、传感器驱动、里程计、标定 TF 和部署服务。CPU 快速开始不会安装这些外部组件，具体见 [Jetson 集成说明](docs/jetson.md) 和 [bag 操作流程](bag_tools/README.md)。
 

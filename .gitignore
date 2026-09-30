@@ -33,3 +33,6 @@ output/
 .DS_Store
 .idea/
 .vscode/
+
+# Downloaded ScanPlanner and its build products stay inside this project
+scanplanner_ws/
