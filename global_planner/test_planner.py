@@ -3,10 +3,11 @@ import math
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import numpy as np
 
 from build import build_map
-from planner import Planner, NoPath
+from planner import Planner, NoPath, PlanningCancelled
 from geometry import MotionChecker
 from paper_pipeline import Config
 
@@ -39,6 +40,24 @@ class GlobalPlannerTests(unittest.TestCase):
             self.assertIsInstance(result['yaw_refinement'],dict)
             # Query vertices and their validation cache may not leak to a later query.
             self.assertEqual(len(planner.positions), planner.base_positions)
+            calls=[]
+            def cancelled():
+                calls.append(True)
+                return len(calls)>1
+            with self.assertRaises(PlanningCancelled):
+                planner.query([-1.5,0,.01,0.], [1.5,0,.01], cancelled=cancelled)
+            self.assertEqual(len(planner.positions),planner.base_positions)
+            self.assertTrue(all(k[0]<planner.base_positions for k in planner.search.pose_cache))
+            self.assertTrue(planner.query([-1.5,0,.01,0.], [1.5,0,.01])['success'])
+            cached=Planner(Path(path));cached.prepare()
+            self.assertGreater(sum(cached.search.saved_counts),0)
+            again=cached.query([-1.5,0,.01,0.], [1.5,0,.01], goal_yaw=math.pi/2)
+            self.assertAlmostEqual(again['initial']['cost'],result['initial']['cost'])
+            # A cache from a different map/checker fingerprint must be ignored.
+            np.savez(cached.search.cache_path,key='different-map',nodes=np.array([[0,0,0]]),edges=np.empty((0,5)))
+            fresh=Planner(Path(path));fresh.prepare()
+            self.assertFalse(fresh.search.pose_cache)
+            self.assertFalse(fresh.edge_cache)
 
     def test_overlapping_floors_do_not_connect_without_stairs(self):
         with tempfile.TemporaryDirectory() as path:
@@ -61,7 +80,8 @@ class GlobalPlannerTests(unittest.TestCase):
                 self.assertAlmostEqual(p[1],.05,places=7)
                 self.assertAlmostEqual(math.sin(p[3]),0.,places=7)
             with self.assertRaises(NoPath):
-                planner.query([-1.,.05,.01,math.pi/2],[1.,.05,.01])
+                with patch.object(planner, 'astar', side_effect=AssertionError('invalid start reached search')):
+                    planner.query([-1.,.05,.01,math.pi/2],[1.,.05,.01])
             self.assertEqual(len(planner.positions),planner.base_positions)
             self.assertTrue(planner.query([-1.,.05,.01,0.],[1.,.05,.01])['success'])
 

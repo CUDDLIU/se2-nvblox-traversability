@@ -23,6 +23,10 @@ class NoPath(ValueError):
     pass
 
 
+class PlanningCancelled(RuntimeError):
+    pass
+
+
 class Planner:
     def __init__(self, directory, longitudinal=.4, lateral=.2, yaw_rate=.6):
         self.directory = Path(directory)
@@ -204,6 +208,17 @@ class Planner:
             self.search = Search(self)
         return self.search.run(start, goals, chain, timeout)
 
+    def prepare(self):
+        from search import Search
+        if not hasattr(self, 'search'):
+            self.search = Search(self)
+        self.search.prepare()
+
+    def check_cancelled(self):
+        cancelled = getattr(self, '_cancelled', None)
+        if cancelled is not None and cancelled():
+            raise PlanningCancelled('目标已更新，取消旧查询。')
+
     def region_sequence(self, path):
         sequence = []
         for a, b in zip(path, path[1:]):
@@ -313,14 +328,25 @@ class Planner:
             if ok:angles[yaw]=choices[yaw][1]
         return angles
 
-    def query(self, start, goal, goal_yaw=None, timeout=60.):
+    def query(self, start, goal, goal_yaw=None, timeout=60., cancelled=None):
         started = time.monotonic()
         if len(start) != 4 or not np.isfinite(start).all() or (goal_yaw is not None and not math.isfinite(goal_yaw)):
             raise NoPath('起点位置与朝向必须为有限值。')
         base = len(self.positions)
+        self._cancelled = cancelled
         try:
+            self.check_cancelled()
             sp, sr = self.project(start[:3])
             gp, gr = self.project(goal[:3])
+            # The exact measured heading must be feasible. Reject it before
+            # graph construction/Dijkstra, not after an entire candidate path.
+            start_pose = np.r_[sp, start[3]]
+            if not self.checker.motion(start_pose, start_pose):
+                raise NoPath('起点实际位置与朝向未通过保存地图的机身轮廓/支撑检查；未开始路径搜索。')
+            if goal_yaw is not None:
+                goal_pose = np.r_[gp, goal_yaw]
+                if not self.checker.motion(goal_pose, goal_pose):
+                    raise NoPath('目标位置与指定朝向未通过保存地图的机身轮廓/支撑检查；未开始路径搜索。')
             sid = self.add_position(sp, [sr], 0, self.endpoint_angles(sp,sr))
             gid = self.add_position(gp, [gr], 0, self.endpoint_angles(gp,gr))
             self.angles[sid][-1] = float(start[3])
@@ -328,11 +354,12 @@ class Planner:
                 self.angles[gid][-1] = float(goal_yaw)
             goals = {(gid, y) for y in self.angles[gid]} if goal_yaw is None else {(gid, -1)}
             initial, initial_metrics = self.astar((sid, -1), goals, timeout=timeout)
+            self.check_cancelled()
             final = initial
             report = dict(initial=initial_metrics, straightening='unchanged', yaw_refinement='unchanged')
             pulled,sections = self.straighten_sections(initial)
             if len(pulled)>1:
-                chain, pids = defaultdict(set), []
+                chain, pids, sources = defaultdict(set), [], {}
                 for item in pulled:
                     xyz,owners,source=item['xyz'],item['owners'],item['source']
                     mask = (1 << self.bins)-1
@@ -341,6 +368,12 @@ class Planner:
                     angles=dict(self.angles[source]) if source is not None else None
                     pid=self.add_position(xyz,owners,mask,angles)
                     pids.append(pid)
+                    if source is not None and np.array_equal(xyz,self.positions[source]):
+                        sources[pid]=source
+                        for yaw,value in self.angles[pid].items():
+                            old=(source,yaw)
+                            if old in self.search.pose_cache:
+                                self.search.pose_cache[(pid,yaw)]=self.search.pose_cache[old]
                     if source in self.witness_cells:
                         self.witness_cells[pid]=self.witness_cells[source]
                         self.witness_proof[pid]=self.witness_proof[source]
@@ -350,6 +383,18 @@ class Planner:
                 for a, b in zip(pids, pids[1:]):
                     chain[a].add(b)
                     chain[b].add(a)
+                # Retained metric anchors have identical poses. Their existing
+                # certificates remain valid in this immutable map, even though
+                # the refinement graph assigns them fresh vertex IDs.
+                copies=defaultdict(list)
+                for pid,source in sources.items():copies[source].append(pid)
+                for (sa,sb),valid in list(self.edge_cache.items()):
+                    for a in copies.get(sa[0],[]):
+                        for b in copies.get(sb[0],[]):
+                            if a!=b and b not in chain[a]:continue
+                            if (self.angles[a].get(sa[1])!=self.angles[sa[0]].get(sa[1]) or
+                                self.angles[b].get(sb[1])!=self.angles[sb[0]].get(sb[1])):continue
+                            self.edge_cache[tuple(sorted(((a,sa[1]),(b,sb[1]))))]=valid
                 goal_states = {(pids[-1], y) for y in self.angles[pids[-1]]} if goal_yaw is None else {(pids[-1], -1)}
                 try:
                     candidate, refined = self.astar((pids[0], -1), goal_states, chain=chain, timeout=min(timeout, 30.))
@@ -363,7 +408,9 @@ class Planner:
                     report['straightening'] = 'refined route rejected by physical motion checks'
                     report['refinement_detail'] = str(exc)
             poses = np.asarray([self.pose(node) for node in final])
-            checks = np.asarray([self.voxel_proof(a, b) or self.checker.motion(self.pose(a), self.pose(b))
+            self.check_cancelled()
+            checks = np.asarray([self.voxel_proof(a, b) or self.edge_cache.get(tuple(sorted((a,b))),False)
+                                 or self.checker.motion(self.pose(a), self.pose(b))
                                  for a, b in zip(final, final[1:])])
             if not checks.all():
                 raise NoPath('最终路径复核失败，拒绝发布。')
@@ -376,6 +423,7 @@ class Planner:
             report['metric_certified_segments'] = len(checks)-report['voxel_certified_segments']
             return report
         finally:
+            self._cancelled = None
             for region in self.region_positions:
                 self.region_positions[region] = [p for p in self.region_positions[region] if p < base]
             self.positions[base:] = []
@@ -384,5 +432,6 @@ class Planner:
             self.edge_cache = {k: v for k, v in self.edge_cache.items() if max(k[0][0], k[1][0]) < base}
             if hasattr(self, 'search'):
                 self.search.pose_cache={k:v for k,v in self.search.pose_cache.items() if k[0]<base}
+                self.search.save_certificates()
             self.witness_cells={k:v for k,v in self.witness_cells.items() if k<base}
             self.witness_proof={k:v for k,v in self.witness_proof.items() if k<base}

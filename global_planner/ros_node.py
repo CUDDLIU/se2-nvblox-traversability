@@ -74,6 +74,10 @@ class GlobalPlannerNode(Node):
         # Query completion must be serviced while a bag's /clock is paused.
         self.poll_clock = Clock(clock_type=ClockType.STEADY_TIME)
         self.create_timer(.1, self.poll, clock=self.poll_clock)
+        self.status('preparing', '正在预计算固定地图搜索图，完成后可点选目标。')
+        prepared = time.monotonic()
+        self.planner.prepare()
+        self.get_logger().info(f'固定地图搜索图已准备：{time.monotonic()-prepared:.2f} s；后续查询复用。')
         self.publish_map()
         self.publish_query()
         self.status('ready', '就绪：在 RViz 选择 Publish Point，点击目标楼层的绿色或橙色地面。')
@@ -252,12 +256,15 @@ class GlobalPlannerNode(Node):
                     self.publish_path(result)
             except Exception as exc:
                 if generation==self.generation:
-                    self.clear_path();self.status('no_path',str(exc))
+                    self.clear_path();self.status('no_path',str(exc),
+                        seconds=time.monotonic()-self.future_started, goal=self.future_goal.tolist())
             self.future=None
         if self.future is None and self.pending is not None:
             generation,start,goal,yaw=self.pending;self.pending=None
             self.future_generation=generation
-            self.future=self.pool.submit(self.planner.query,start,goal,yaw,90.)
+            self.future_started=time.monotonic();self.future_goal=goal
+            self.future=self.pool.submit(self.planner.query,start,goal,yaw,90.,
+                lambda generation=generation: self.generation != generation)
 
     def publish_path(self,result):
         poses=np.asarray(result['poses'])

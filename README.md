@@ -67,6 +67,8 @@ bash /home/nvidia/scanplanner_test/se2_nvblox_surface_shadow/official_first_inte
 
 For telemetry and visualization without velocity or mode changes, run `start_live.sh` without either flag. After localization succeeds, use RViz **Publish Point** to choose a green/orange surface on the destination floor. The yellow path is the ASA route; FIRST displays its local trajectory and the actual classified obstacle points, alongside the measured M20 URDF.
 
+Wait for the global planner's `ready` status: the static graph is prepared once at startup. Validated map geometry is cached across restarts. Two measured routes took 0.56–0.91 s with that cache; first validation took 1.52–2.93 s. See [ASA latency measurements and limits](docs/asa-latency.md).
+
 Startup now searches **near the recording start by default**; it does not automatically use the previous endpoint cache. `--recording-start` is optional and preserves older commands. For a known different location, supply `--initial-map-pose X Y Z YAW` (metres, radians); the seed still requires scan matching. Initial search uses ±2 m seed offsets and full yaw hypotheses, bounded to 3 m horizontally and 0.5 m vertically from the anchor. This is local relocalization, not whole-building place recognition.
 
 The default saved map is `scanplanner_integration/maps/20261012_confirmed_scene`; select another prepared map with `--map DIRECTORY`. Live navigation uses the current measured pose, while the separate bag-planning viewer can use a recorded endpoint. Stopping sends zero-velocity packets before shutting down the other owned processes and requests restoration of the prior usage mode; sender logs record the outcome.

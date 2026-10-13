@@ -67,6 +67,8 @@ bash /home/nvidia/scanplanner_test/se2_nvblox_surface_shadow/official_first_inte
 
 仅查看遥测和可视化时，运行不带这两个参数的 `start_live.sh`，不会发送速度或切换模式。定位成功后，在 RViz 使用 **Publish Point** 点击目标楼层的绿色或橙色地面。黄色为 ASA 全局路径；FIRST 显示局部轨迹和实际参与避障的障碍点云，同时显示 M20 实测姿态模型。
 
+请等全局规划器进入 `ready`：固定搜索图在启动时准备一次，地图几何检查结果支持跨重启复用。两条测试路线复用后耗时 0.56–0.91 秒，首次验证耗时 1.52–2.93 秒，详见 [ASA 延迟测试与限制](docs/asa-latency.md)。
+
 **默认从录包起点附近搜索，不自动读取上次终点的位置缓存。** `--recording-start` 仍兼容，但不再必需。如需指定其他已知区域，可传入 `--initial-map-pose X Y Z YAW`（米、弧度）；初值仍需通过点云匹配。初始化使用 ±2 米种子偏移与全朝向假设，并限制在搜索中心水平 3 米、垂直 0.5 米内；这不是任意整栋建筑的全局位置识别。
 
 默认地图为 `scanplanner_integration/maps/20261012_confirmed_scene`，通过 `--map DIRECTORY` 指定其他已构建地图。实机导航使用当前实测定位；独立 bag 全局规划界面可使用录制终点。停止时先发送零速度，再关闭其他所属进程，并请求恢复此前控制模式；发送结果记入日志。
