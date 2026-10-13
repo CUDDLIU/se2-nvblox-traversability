@@ -1,0 +1,346 @@
+{
+  "status": "supervised_hardware_trials",
+  "updated": "2026-10-12",
+  "core_tests": "passed on workstation and Jetson after terminal control, native candidate restoration and dense-height stair detection",
+  "python_gate_tests": 4,
+  "synthetic_ros": {
+    "flat": {
+      "passed": true,
+      "scene": "flat",
+      "commands": 310,
+      "max_control_period_ms": 33.58516200023587,
+      "mean_control_period_ms": 33.333010300000375,
+      "max_planning_ms": 4.445992000910337,
+      "states": [
+        "arrived",
+        "blocked",
+        "idle",
+        "stale_cloud",
+        "tracking",
+        "waiting_inputs"
+      ]
+    },
+    "single_step": {
+      "passed": true,
+      "commands": 193,
+      "max_control_period_ms": 34.58756,
+      "mean_control_period_ms": 33.333035,
+      "max_planning_ms": 8.183996,
+      "states": [
+        "tracking",
+        "waiting_inputs",
+        "waiting_stair_confirmation"
+      ]
+    },
+    "scope": "isolated ROS domain, synthetic sensor data, no robot sender; not physical stair acceptance",
+    "missing_saved_support": {
+      "passed": true,
+      "commands": 312,
+      "max_control_period_ms": 34.686731,
+      "mean_control_period_ms": 33.332985,
+      "max_planning_ms": 4.185185,
+      "cases": [
+        "planning without saved ground",
+        "obstacle rejection",
+        "cancel",
+        "stale cloud",
+        "observed ray clear",
+        "terminal approach",
+        "terminal align",
+        "arrival"
+      ]
+    },
+    "height_datum": {
+      "passed": true,
+      "commands": 262,
+      "max_control_period_ms": 35.5416710008285,
+      "mean_control_period_ms": 33.33305254545097,
+      "max_planning_ms": 1.339426999038551,
+      "saved_height_offset_m": -0.15,
+      "ground_threshold_unchanged_m": 0.1,
+      "low_returns_free": true,
+      "higher_obstacle_blocks": true
+    },
+    "single_step_after_height_fix": {
+      "passed": true,
+      "commands": 317,
+      "max_control_period_ms": 37.124918000699836,
+      "max_planning_ms": 2.8534220000437927
+    },
+    "missing_saved_support_after_height_fix": {
+      "passed": true,
+      "commands": 436,
+      "max_control_period_ms": 38.09053400073026,
+      "max_planning_ms": 4.552194999632775
+    },
+    "posture_transition": {
+      "passed": true,
+      "commands": 218,
+      "max_control_period_ms": 36.468171998421894,
+      "mean_control_period_ms": 33.33304604060926,
+      "max_planning_ms": 7.18226399840205,
+      "cases": [
+        "foreign retained route rejected",
+        "gait request before fresh cloud",
+        "transition scans held",
+        "stable posture resumes navigation",
+        "real obstacle blocks",
+        "stable standing populates preview without a goal or motion"
+      ],
+      "robot_sender_started": false
+    },
+    "posture_with_near_filter": {
+      "passed": true,
+      "commands": 220,
+      "max_control_period_ms": 39.41106199999922,
+      "mean_control_period_ms": 33.33720657499725,
+      "max_planning_ms": 10.853949999727774,
+      "realistic_dense_wall_blocks": true
+    }
+  },
+  "udp_loopback": {
+    "destination": "127.0.0.1",
+    "native_velocity": [
+      1.2,
+      0.0,
+      0.8
+    ],
+    "gait_confirmation_hz": 30.0276073873,
+    "gait_timeout_hz": 29.9950017244,
+    "mode_restore_hz": 29.9688206016,
+    "cases": [
+      "concurrent command and gait",
+      "one outstanding gait request",
+      "motion maintained while gait confirmation pending",
+      "gait timeout latches stop",
+      "old command does not refresh watchdog",
+      "requested mode restored after shutdown"
+    ],
+    "startup_note": "one early fixed-duration concurrent test failed without diagnostic capture; explicit ROS/UDP discovery wait added; subsequent confirmation, timeout and mode-restore tests passed",
+    "after_telemetry_change_hz": 30.006326849256215
+  },
+  "live_read_only": {
+    "session": "20261012_135250",
+    "localization": "matched recording start; accepted pose approximately [-0.188,-0.178,0.013]",
+    "asa_success": true,
+    "asa_path_m": 7.7932744904,
+    "asa_seconds": 20.155527711,
+    "command_publisher_mean_hz": 30.0118390005,
+    "max_command_period_ms": 39.0677309988,
+    "planner_status_counts": {
+      "idle": 367,
+      "waiting_gait": 327,
+      "stale_robot_state": 26,
+      "waiting_inputs": 1
+    },
+    "velocity_packets_sent": 0,
+    "robot_mode": 0,
+    "gait": 4097,
+    "scope": "before final terminal/dense-stair updates; no physical actuation"
+  },
+  "telemetry_diagnosis": {
+    "session": "telemetry_kernel_check",
+    "duration_s": 35,
+    "kernel_receive_timestamps": true,
+    "motion_status_max_wire_gap_s": 2.3094494343,
+    "basic_status_max_wire_gap_s": 6.527315855,
+    "max_receive_queue_ms": 33.745288849,
+    "max_receiver_loop_ms": 35.7144750014,
+    "velocity_packets_sent": 0,
+    "conclusion": "observed gaps precede application receive; precise network/robot-server cause unresolved",
+    "icmp_samples": {
+      "aos_103": {
+        "sent": 20,
+        "received": 17
+      },
+      "gos_104": {
+        "sent": 30,
+        "received": 30
+      },
+      "nos_106": {
+        "sent": 30,
+        "received": 30
+      }
+    },
+    "jetson_eno1_receive_errors": 0,
+    "jetson_eno1_receive_dropped": 0,
+    "dual_end_capture": {
+      "aos_tx_motion": 395,
+      "jetson_rx_motion": 259,
+      "aos_max_tx_gap_s": 0.1091639996,
+      "jetson_max_rx_gap_s": 3.3146035671,
+      "heartbeats_sent": 74,
+      "heartbeats_arrived_aos": 74,
+      "aos_basic_server_udp_socket_drops": 0,
+      "aos_interface": "eth2 cdc_ether USB 10/100 LAN",
+      "precise_physical_component": "not isolated; no physical/network config changes"
+    }
+  },
+  "capture14": {
+    "selected_id": 4528,
+    "velocity": [
+      1.5,
+      0.0,
+      -0.2
+    ],
+    "obstacles": 6511,
+    "hard_rejected": 115,
+    "saved_support_veto": false,
+    "actual_robot_moved": false,
+    "scope": "offline geometry/selection probe; no complete ROS or physical execution acceptance"
+  },
+  "remaining": [
+    "recorded open-riser/stair acceptance and live negative-obstacle handling; saved-map support veto intentionally removed",
+    "complete native FSM/binary differential validation",
+    "certified ASA start connector when saved map rejects measured start",
+    "supervised physical navigation and cross-floor arrival",
+    "posture-transition accumulated low-voxel provenance and time/frame alignment",
+    "uninterrupted 20 Hz actual sender interval under load"
+  ],
+  "physical_acceptance": false,
+  "saved_support_veto_removed": true,
+  "saved_support_policy": "Saved heights are optional references only; missing center/footprint support never rejects FIRST local candidates. Global ASA start/navmesh checks and robot status gates are unchanged.",
+  "telemetry_fix": {
+    "status": "passed_real_hardware_observation",
+    "session": "telemetry_nos_fixed",
+    "health_log_duration_s": 124.166928176,
+    "route": "AOS 10.21.33.103 UDP -> NOS 10.21.33.106 -> SSH -> Jetson",
+    "motion_packets": 1230,
+    "basic_packets": 246,
+    "motion_max_receive_gap_s": 0.13346257099874492,
+    "basic_max_receive_gap_s": 0.5340698419986438,
+    "motion_max_source_gap_s": 0.10214111499954015,
+    "basic_max_source_gap_s": 0.5044900080010848,
+    "max_relay_frame_age_s": 0.037062181,
+    "receiver_loop_max_ms": 34.799215,
+    "relay_connection_attempts": 1,
+    "old_future_reordered_invalid_frames": 0,
+    "stale_motion_health_samples_after_startup": 0,
+    "stale_basic_health_samples_after_startup": 0,
+    "velocity_packets_sent": 0,
+    "basic_status_timeout_s": 1.2,
+    "motion_status_timeout_s": 0.35,
+    "command_watchdog_s": 0.12,
+    "timeouts_unchanged": true,
+    "physical_link_repaired": false,
+    "scope": "telemetry workaround for external return-path loss; does not certify motor execution or UDP command acknowledgements"
+  },
+  "python_gate_and_relay_tests": 8,
+  "python_gate_relay_session_tests": 10,
+  "session_execution": {
+    "enabled_explicitly": true,
+    "default": "telemetry_only",
+    "private_route_command_state_topics": true,
+    "sender_stopped_before_gui": true,
+    "shutdown_zero_packets": 3,
+    "loopback_hz": 29.98480335606066,
+    "old_session_command_rejected": true,
+    "old_retained_route_rejected": true
+  },
+  "hardware_trial_1": {
+    "session": "20261012_150133_1fcbf8c9",
+    "max_displacement_m": 0.961567832047163,
+    "nonzero_packets": 22,
+    "velocity_mean_hz": 30.002776458819618,
+    "max_send_period_ms": 111.40547800096101,
+    "motion_max_gap_s": 0.13965449199895374,
+    "basic_max_gap_s": 0.5459975750000012,
+    "sender_failed": false,
+    "shutdown_zero_packets": 3,
+    "restored_mode": 0,
+    "continuous_navigation_passed": false
+  },
+  "hardware_trial_2": {
+    "session": "20261012_151133_605eab42",
+    "reason": "collision_blocked",
+    "max_displacement_m": 0.06816273019354077,
+    "nonzero_packets": 5,
+    "shutdown_zero_packets": 3,
+    "restored_mode_request": 0,
+    "snapshot_saved": true
+  },
+  "height_datum_fix": {
+    "snapshot": "20261012_151133_605eab42",
+    "body_z_m": -0.11986662193086559,
+    "reported_height_m": 0.43283015489578247,
+    "measured_ground_z_m": -0.5526967768266481,
+    "old_snapped_ground_z_m": -0.608658,
+    "near_return_z_m": -0.475,
+    "ground_threshold_m": 0.1,
+    "before": {
+      "selected_id": -1,
+      "hard_rejected": 3077
+    },
+    "after": {
+      "selected_id": 4530,
+      "velocity": [
+        1.5,
+        0,
+        0
+      ],
+      "hard_rejected": 154
+    },
+    "scope": "exact captured accumulated occupancy, offline forward-target selection; hardware subsequently advanced 0.575 m but blocked again on accumulated low voxels"
+  },
+  "hardware_trial_3": {
+    "session": "20261012_152145_01c14c3a",
+    "reason": "collision_blocked",
+    "max_displacement_m": 0.5746397858410441,
+    "nonzero_packets": 12,
+    "velocity_mean_hz": 29.991008174545243,
+    "max_send_period_ms": 109.58964000019478,
+    "motion_max_gap_s": 0.1387506739993114,
+    "basic_max_gap_s": 0.5751832850000937,
+    "shutdown_zero_packets": 3,
+    "restored_mode_request": 0,
+    "snapshot_saved": true,
+    "continuous_navigation_passed": false
+  },
+  "posture_transition_fix": {
+    "deployed": true,
+    "height_stability_window_s": 0.3,
+    "height_span_m": 0.015,
+    "source_motion_timestamp": true,
+    "separate_perception_thread": true,
+    "existing_occupancy_retained": true,
+    "hardware_retested": false,
+    "original_phantom_provenance_confirmed": false,
+    "standing_preview": true
+  },
+  "near_filter": {
+    "deployed": true,
+    "radius_m": 0.04,
+    "range_m": 1.5,
+    "required_distinct_neighbors": 2,
+    "unit_fixtures_passed": true,
+    "clearing_from_rejected_returns": false,
+    "physical_navigation_passed": false,
+    "single_return_real_objects_may_be_suppressed": true
+  },
+  "visualization": {
+    "obstacle_topic": "/first/planning_obstacles",
+    "style": "Points",
+    "robot": "measured URDF",
+    "tf_prefix": "first_robot",
+    "body_source": "/first/aligned_odom",
+    "leg_source": "session MotionStatus/MotorStatus",
+    "wheel_angle": "relative integral of measured wheel speed"
+  },
+  "lidar_reference_localization": {
+    "session": "20261012_170147_ead71428",
+    "same_bag": "20260929_155717_4a77a9",
+    "reference_topic": "/nvblox_lio/cloud_world",
+    "mesh_and_lidar_trajectory_p95_m": 0.021247,
+    "offline_initial_inliers": 0.878494623655914,
+    "offline_initial_structure_inliers": 0.8797709923664122,
+    "live_state": "tracking",
+    "live_inliers": 0.8741935483870967,
+    "live_structure_inliers": 0.872093023255814,
+    "live_source_age_s": 0.42499852180480957,
+    "minimum_initial_inliers_unchanged": 0.85,
+    "minimum_initial_structure_inliers_unchanged": 0.78,
+    "quality_gate_before_ambiguity": true,
+    "body_hint_on_restart": true,
+    "scope": "local initialization near seed, not whole-building global recognition; no driving trial"
+  }
+}

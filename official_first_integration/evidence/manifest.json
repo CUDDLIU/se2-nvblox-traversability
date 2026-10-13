@@ -1,0 +1,50 @@
+{
+  "source": "NOS /opt/robot/share/planner",
+  "build_id": "c99ebf84f89e85be231a2b63da1beaeb9d941c1d",
+  "files": {
+    "change_log.md": {
+      "bytes": 2696,
+      "sha256": "7ae1a6adb1883281c3c079ba32d1a269c6bc9770a56b716e85a371296277b8ff"
+    },
+    "bin/localPlanner": {
+      "bytes": 1489728,
+      "sha256": "811d309e1a45d2f2a91d3cf423b809e1b4c1959f53c73d71f8e2dcee490dd354"
+    },
+    "config/localplanner.yaml": {
+      "bytes": 4407,
+      "sha256": "8f2860cb6825817b01c68838967c0ab4d8bd21628480a95b4ce86e23db9c1e48"
+    },
+    "config/pcl_pass_grid.yaml": {
+      "bytes": 1096,
+      "sha256": "060b800d56df9aefb876f9d46d0e9679b8a2a13203817db1180170a000201db8"
+    },
+    "paths/first/correspondences_6.ply": {
+      "bytes": 99043964,
+      "sha256": "fb942cecffe99e4b2a7e790c82b5ce6602a1b71e5efc478b7f021a4a02108cbf"
+    },
+    "paths/first/correspondences_5.ply": {
+      "bytes": 74298269,
+      "sha256": "63f3391ba4c898a82443353d183310954f4bd99c26e74a76398248b505e862a2"
+    },
+    "paths/first/correspondences.ply": {
+      "bytes": 31876821,
+      "sha256": "86cd1cc72019ffd0ec9b1a3b2312d863c61fe41ac8ac366a54cb3e362082dd9a"
+    },
+    "paths/first/correspondences_4.ply": {
+      "bytes": 48667633,
+      "sha256": "e9f282ac77dea9024d38b6ed909dc151bf68040be9264eb49737e7f72584fe7c"
+    },
+    "paths/first/path_end.ply": {
+      "bytes": 193691,
+      "sha256": "f5a4033fb6f9cbc8f06578d0964f5085352ca2d01d6bd2bc822a43aa469fc98a"
+    },
+    "paths/first/pathList.ply": {
+      "bytes": 1131953,
+      "sha256": "edc70b7ce6c4efe26b6f9e4be94ea642f5fce82c6521ca9d00fc927af7ac2e3f"
+    },
+    "paths/first/readme.md": {
+      "bytes": 8958,
+      "sha256": "89ad02d4e0a26c225236debac8dbdef328572b72cb3bf86b9f902b9c78cc46a5"
+    }
+  }
+}

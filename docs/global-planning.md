@@ -6,7 +6,7 @@
 
 Build a static map from a complete sensor bag, then click a **3D surface point** in RViz to plan through stairs between floors. The start defaults to the robot's recorded final pose, projected onto the floor. Outputs are a geometric path and headings; no robot motion commands are sent.
 
-The intended downstream local planner is the installed **ScanPlanner**. Its current reference-path handling flattens height and drops intermediate headings, so direct remapping is insufficient. See the [verified interface differences and integration contract](scanplanner-integration.md).
+The current live execution chain uses the independent **FIRST-based local planner** in [official_first_integration](../official_first_integration/README.md). This page describes the saved-map/bag planning workflow; live navigation takes its start from current map-aligned odometry. The earlier [ScanPlanner interface investigation](scanplanner-integration.md) remains available for reference.
 
 ### Relation to SE(2) NavMesh
 
@@ -84,7 +84,7 @@ The map describes the final reconstructed static geometry. Later obstacles, odom
 
 整包重建得到静态全局通行图后，可在 RViz 点击具有真实高度的地面目标，通过楼梯进行跨楼层规划。默认起点为 **bag 录制终点在地面的投影**；输出包含位置与朝向，不发送运动控制指令。
 
-最终面向现有 **ScanPlanner 局部规划器**接入。已核查其高度覆盖、1.5 米抽稀和中途朝向丢失问题，详见[接口核查与适配要求](scanplanner-integration.md#中文说明)；当前尚未完成跨楼层闭环执行适配。
+当前实机执行采用 [official_first_integration](../official_first_integration/README.md) 中基于 FIRST 的独立局部规划器。本页描述保存地图和 bag 全局规划流程；实机起点来自当前地图对齐里程计。早期 [ScanPlanner 接口核查](scanplanner-integration.md#中文说明) 保留供参考，跨楼层实机闭环尚未完成验收。
 
 ### 与论文的对应关系
 

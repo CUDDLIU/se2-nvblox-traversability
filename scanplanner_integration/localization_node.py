@@ -19,9 +19,13 @@ from std_msgs.msg import String
 
 
 class Localization(Node):
-    def __init__(self,directory,output):
+    def __init__(self,directory,output,initial_map_pose=None):
         super().__init__('se2_scan_localization')
         self.aligner=MapAligner(directory);self.output=Path(output);self.output.mkdir(parents=True,exist_ok=True)
+        if initial_map_pose is not None:
+            seed=np.asarray(initial_map_pose,dtype=float)
+            if seed.shape!=(4,) or not np.isfinite(seed).all():raise ValueError('invalid map search seed')
+            self.aligner.anchor=seed[:3].copy();self.aligner.seed_yaw=float(seed[3])
         self.cache=self.output.parent.parent/('localization_'+self.aligner.mesh_sha256[:12]+'.json');self.cache_loaded=False;self.publisher_key=None
         self.poses=deque(maxlen=1000);self.clouds=deque(maxlen=5);self.last_scan=0.;self.transform=None;self.stable=0
         self.good_at=0.;self.last_try=0.;self.last_ros=0.;self.last_position=None
@@ -69,7 +73,7 @@ class Localization(Node):
         began=time.monotonic()
         source=deskew(np.concatenate([self.unpack(m) for m in messages]),poses);body=poses[-1,1:4]
         m=messages[-1]
-        t,y,quality=self.aligner.fit(source,body,previous);quality['compute_ms']=(time.monotonic()-began)*1000
+        t,y,quality=self.aligner.fit_rigid(source,body,previous);quality['compute_ms']=(time.monotonic()-began)*1000
         return generation,(t,y,quality),m.header.stamp.sec+m.header.stamp.nanosec/1e9
 
     def tick(self):
@@ -86,7 +90,7 @@ class Localization(Node):
             try:
                 d=json.loads(self.cache.read_text())
                 if d['mesh_sha256']==self.aligner.mesh_sha256 and d['publisher_gid']==self.publisher_key:
-                    self.transform=(np.asarray(d['translation'],dtype=float),float(d['yaw']))
+                    self.transform=(np.asarray(d['translation'],dtype=float),Rotation.from_quat(d['quaternion_xyzw']).as_matrix())
                     self.state('localizing','Revalidating the saved transform for this same running odometry publisher')
             except (OSError,ValueError,KeyError,TypeError):pass
         if self.future is not None and self.future.done():
@@ -96,19 +100,22 @@ class Localization(Node):
                 if generation==self.generation:
                     if self.transform is not None:
                         ot,oy=self.transform
-                        self.stable=self.stable+1 if np.linalg.norm(t-ot)<.005 and abs(np.arctan2(np.sin(y-oy),np.cos(y-oy)))<.002 else 0
+                        self.stable=self.stable+1 if np.linalg.norm(t-ot)<.005 and Rotation.from_matrix(y@oy.T).magnitude()<.002 else 0
                     self.transform=(t,y)
                     if 0<=age<1.2 and (self.good_at>0 or self.stable>=5):
                         self.good_at=now
                         m=PoseStamped();m.header.frame_id='se2_scan_map';m.header.stamp=self.get_clock().now().to_msg()
                         m.pose.position.x,m.pose.position.y,m.pose.position.z=map(float,t)
-                        m.pose.orientation.z=float(np.sin(y/2));m.pose.orientation.w=float(np.cos(y/2));self.pub.publish(m)
+                        quaternion=Rotation.from_matrix(y).as_quat()
+                        m.pose.orientation.x,m.pose.orientation.y,m.pose.orientation.z,m.pose.orientation.w=map(float,quaternion);self.pub.publish(m)
                         cache=dict(mesh_sha256=self.aligner.mesh_sha256,publisher_gid=self.publisher_key,
-                            translation=t.tolist(),yaw=y,quality=quality,time_ns=time.time_ns())
+                            translation=t.tolist(),quaternion_xyzw=quaternion.tolist(),yaw=float(Rotation.from_matrix(y).as_euler('xyz')[2]),quality=quality,time_ns=time.time_ns())
                         tmp=self.cache.with_suffix('.tmp');tmp.write_text(json.dumps(cache,indent=2));tmp.replace(self.cache)
-                        self.state('tracking','Live surfaces matched to saved mesh',translation=t.tolist(),yaw=y,quality=quality,source_age_s=age)
+                        self.state('tracking','Live surfaces matched to saved mesh',translation=t.tolist(),quaternion_xyzw=quaternion.tolist(),roll_pitch_yaw_deg=Rotation.from_matrix(y).as_euler('xyz',degrees=True).tolist(),quality=quality,source_age_s=age)
                     else:self.state('localizing','Waiting for five stable fresh map matches before publishing pose',stable_matches=self.stable,source_age_s=age)
             except (ValueError,RuntimeError) as exc:
+                self.stable=0
+                if not self.good_at:self.transform=None
                 self.state('lost' if now-self.good_at>1.5 else 'degraded',str(exc))
             self.future=None
         if self.future is not None or len(self.clouds)<5 or len(self.poses)<100 or now-self.last_try<.5:return
@@ -119,8 +126,9 @@ class Localization(Node):
 
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('map');ap.add_argument('--output',required=True);args=ap.parse_args()
-    rclpy.init();node=Localization(args.map,args.output)
+    ap=argparse.ArgumentParser();ap.add_argument('map');ap.add_argument('--output',required=True)
+    ap.add_argument('--initial-map-pose',nargs=4,type=float);args=ap.parse_args()
+    rclpy.init();node=Localization(args.map,args.output,args.initial_map_pose)
     try:rclpy.spin(node)
     except KeyboardInterrupt:pass
     finally:node.pool.shutdown(wait=True,cancel_futures=True);node.destroy_node()

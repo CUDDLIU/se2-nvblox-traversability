@@ -10,7 +10,7 @@ from core import packet,decode_packet
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--enter-navigation',action='store_true');ap.add_argument('--normal-speed',action='store_true');args=ap.parse_args();mode=0 if args.enter_navigation else 1;mode_requests=0
-    vx,vy,wz=(.5,.25,.6) if args.normal_speed else (.1,0.,.2)
+    vx,vy,wz=(1.2,0.,.8) if args.normal_speed else (.1,0.,.2)
     root=Path(__file__).resolve().parents[1]
     sock=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);sock.bind(('127.0.0.1',0));sock.setblocking(False)
     rclpy.init();node=rclpy.create_node('m20_udp_loopback_test');pub=node.create_publisher(TwistStamped,'/se2_scan/cmd_vel_stamped',qos_profile_sensor_data)

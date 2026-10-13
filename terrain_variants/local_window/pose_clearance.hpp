@@ -39,13 +39,13 @@ struct Polygon {
   P* begin(){return values.data();} P* end(){return values.data()+count;}
   const P* begin()const{return values.data();} const P* end()const{return values.data()+count;}
 };
-Polygon clip(const Polygon& vertices,double z,bool above) {
+Polygon clip(const Polygon& vertices,double z,bool above,int axis=2) {
   Polygon out;if(vertices.empty())return out;
-  P previous=vertices.back();bool before=above?previous[2]>=z:previous[2]<=z;
+  P previous=vertices.back();bool before=above?previous[axis]>=z:previous[axis]<=z;
   for(const auto& point:vertices) {
-    bool inside=above?point[2]>=z:point[2]<=z;
+    bool inside=above?point[axis]>=z:point[axis]<=z;
     if(inside!=before) {
-      double t=(z-previous[2])/(point[2]-previous[2]);P cut;
+      double t=(z-previous[axis])/(point[axis]-previous[axis]);P cut;
       for(int d=0;d<3;++d)cut[d]=previous[d]+t*(point[d]-previous[d]);
       out.push_back(cut);
     }
@@ -102,8 +102,29 @@ struct Scene {
       }
       previous.swap(current);
     }
-    // Match the original span's upper voxel face. Sub-voxel Mesh ripples
-    // must not become body obstacles below the quantized support surface.
+    // Sampling can miss a Mesh vertex between foot-grid points. Recover the
+    // upper face of that same floor quantum from the clipped support triangles,
+    // otherwise millimetre floor ripples become false body collisions. Use the
+    // original sampled bound throughout: neighbouring triangles cannot lift it
+    // repeatedly. Steep faces and higher surfaces remain collision obstacles.
+    const double sampled_maximum=maximum;
+    for(const auto& t:triangles) {
+      if(!t.support || t.hi[2]<=maximum || t.lo[2]>sampled_maximum+quantum ||
+         std::hypot(t.lo[0]>x? t.lo[0]-x : (x>t.hi[0]?x-t.hi[0]:0.),
+                    t.lo[1]>y? t.lo[1]-y : (y>t.hi[1]?y-t.hi[1]:0.))>std::hypot(a,b) ||
+         std::sqrt(std::max(0.,t.norm*t.norm-t.nz*t.nz))>t.nz*slope_limit+eps)continue;
+      Polygon local;
+      for(const auto& v:t.p) {
+        double dx=v[0]-x,dy=v[1]-y;
+        local.push_back({c*dx+s*dy,-s*dx+c*dy,v[2]});
+      }
+      local=clip(clip(clip(clip(local,-a,true,0),a,false,0),-b,true,1),b,false,1);
+      if(local.empty())continue;
+      double top=-INFINITY;
+      for(const auto& v:local)top=std::max(top,v[2]);
+      if(top<=sampled_maximum+quantum+eps)maximum=std::max(maximum,top);
+    }
+    // Match the original span's upper voxel face.
     maximum=std::ceil(maximum/quantum-1e-9)*quantum;
     return std::hypot(xz/xx,yz/yy)<=slope_limit+eps;
   }

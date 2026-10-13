@@ -10,6 +10,47 @@ def wrap(value):
     return (np.asarray(value) + np.pi) % (2*np.pi) - np.pi
 
 
+def polyline_distances(points, reference):
+    """3-D distance to segments, independent of reference sampling density."""
+    points=np.asarray(points,dtype=float).reshape(-1,3)
+    reference=np.asarray(reference,dtype=float)[:,:3]
+    distances=np.linalg.norm(points-reference[0],axis=1)
+    for a,b in zip(reference,reference[1:]):
+        v=b-a;u=np.clip((points-a)@v/max(1e-12,v@v),0.,1.)
+        distances=np.minimum(distances,np.linalg.norm(points-a-u[:,None]*v,axis=1))
+    return distances
+
+
+def adapt_route(poses, motions, max_span=2., max_deviation=.12):
+    """Remove execution stops only when the replacement SE(2) sweep is valid.
+
+    The original dense ASA path remains the planning result. This creates a
+    separate execution reference, retaining turns/landings when shortcuts fail.
+    Arc length bounds prevent jumping far ahead on a folded route.
+    """
+    poses=np.asarray(poses,dtype=float).reshape(-1,4)
+    if not len(poses) or not np.isfinite(poses).all():raise ValueError('Invalid route')
+    arc=np.r_[0.,np.cumsum(np.linalg.norm(np.diff(poses[:,:3],axis=0),axis=1))]
+    indices=[0];i=0
+    while i+1<len(poses):
+        candidates=[]
+        for j in range(i+2,len(poses)):
+            if arc[j]-arc[i]>max_span:break
+            if np.linalg.norm(poses[j,:3]-poses[i,:3])<.025:continue
+            if np.max(polyline_distances(poses[i:j+1,:3],poses[[i,j]]))>max_deviation:continue
+            candidates.append(j)
+        if candidates:
+            valid=motions([(poses[i],poses[j]) for j in candidates])
+            accepted=[j for j,ok in zip(candidates,valid) if ok]
+        else:accepted=[]
+        i=accepted[-1] if accepted else i+1
+        indices.append(i)
+    result=poses[indices].copy()
+    return result,dict(original_points=len(poses),execution_points=len(result),
+                       merged_points=len(poses)-len(result),max_span_m=max_span,
+                       max_deviation_m=max_deviation)
+
+
 class Route:
     """Ordered SE(2) route in 3-D: no XY-only nearest point or floor jumping."""
     def __init__(self, poses):
@@ -18,7 +59,7 @@ class Route:
             raise ValueError('Route is empty or non-finite')
         self.index = 0
 
-    def window(self, body, height, horizon=1.5):
+    def window(self, body, height, horizon=3.0):
         floor = np.asarray(body, dtype=float).copy()
         floor[2] -= height
         # Advance in order only. Retain pure rotations until the requested yaw
@@ -99,22 +140,28 @@ def sample_bspline(points, knots, order, spacing=.07):
     return np.asarray(result)
 
 
-def route_yaws(positions, reference):
+def project_reference(positions, reference):
+    """Ordered local reference coordinates, preserving its 3-D surface layer."""
     reference=np.asarray(reference);result=[]
     for p in positions:
-        best=math.inf;yaw=reference[0,3]
+        best=math.inf;projection=reference[0].copy()
         for a,b in zip(reference,reference[1:]):
             v=b[:3]-a[:3];u=np.clip((p-a[:3])@v/max(1e-12,v@v),0,1)
             d=np.linalg.norm(p-a[:3]-u*v)
-            if d<best:best=d;yaw=a[3]+u*float(wrap(b[3]-a[3]))
-        result.append(yaw)
+            if d<best:
+                best=d;projection=a+u*(b-a);projection[3]=a[3]+u*float(wrap(b[3]-a[3]))
+        result.append(projection)
     return np.asarray(result)
+
+
+def route_yaws(positions, reference):
+    return project_reference(positions,reference)[:,3]
 
 
 HEADER=struct.Struct('<4sHHB7x')
 MAGIC=bytes.fromhex('eb91eb90')
 SPEED_PROFILES={
-    'normal':dict(forward=.50,lateral=.25,yaw=.60,lookahead=.50),
+    'normal':dict(forward=1.50,lateral=.40,yaw=1.00,lookahead=1.30),
     'slow':dict(forward=.15,lateral=.10,yaw=.30,lookahead=.15),
 }
 def packet(kind,command,items,sequence=0):
@@ -128,7 +175,7 @@ def velocity_packet(x,y,yaw,sequence=0):
     if not all(math.isfinite(v) for v in (x,y,yaw)):
         raise ValueError('non-finite velocity')
     limits=SPEED_PROFILES['normal']
-    if abs(x)>limits['forward'] or abs(y)>limits['lateral'] or abs(yaw)>limits['yaw']:
+    if abs(x)>limits['forward'] or abs(y)>limits['lateral'] or abs(yaw)>limits['yaw'] or math.hypot(x,y)>limits['forward']+1e-9:
         raise ValueError('velocity outside configured navigation limits')
     return packet(2,25,dict(X=x,Y=y,Z=0.,Roll=0.,Pitch=0.,Yaw=yaw),sequence)
 

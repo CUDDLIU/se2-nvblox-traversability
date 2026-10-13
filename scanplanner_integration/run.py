@@ -19,6 +19,7 @@ def main():
     p.add_argument('--bag',type=Path);p.add_argument('--map',type=Path)
     p.add_argument('--live',action='store_true');p.add_argument('--map-aligned',action='store_true')
     p.add_argument('--localize-at-start',action='store_true',help='Match live surfaces near the saved map recording start; does not play the bag')
+    p.add_argument('--initial-map-pose',nargs=4,type=float,help='Measured XYZ/yaw search seed for restarting localization; full scan matching is still required')
     p.add_argument('--execute',action='store_true');p.add_argument('--domain',type=int)
     p.add_argument('--speed-profile',choices=tuple(SPEED_PROFILES),default='normal',help='Live speed profile: normal walking or the former slow commissioning limits')
     p.add_argument('--enter-navigation',action='store_true',help='With --execute, request navigation mode once after fresh standing telemetry')
@@ -50,14 +51,19 @@ def main():
     os.environ.update(ROS_DOMAIN_ID=str(args.domain),ROS_LOCALHOST_ONLY='0' if args.live else '1',OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1',OMP_WAIT_POLICY='PASSIVE',FASTRTPS_DEFAULT_PROFILES_FILE=str(dds_profile))
     os.environ.pop('FASTDDS_DEFAULT_PROFILES_FILE',None)
     os.environ['RMW_FASTRTPS_PUBLICATION_MODE']='ASYNCHRONOUS'
-    children={};logs=[];running=True
+    children={};logs=[];running=True;rviz_restart_requested=False;rviz_command=None
     def stop(*_):
         nonlocal running
         running=False
     signal.signal(signal.SIGINT,stop);signal.signal(signal.SIGTERM,stop)
-    def spawn(name,cmd):
-        f=(out/(name+'.log')).open('w');logs.append(f)
+    def restart_rviz(*_):
+        nonlocal rviz_restart_requested
+        rviz_restart_requested=True
+    signal.signal(signal.SIGUSR1,restart_rviz)
+    def spawn(name,cmd,append=False):
+        f=(out/(name+'.log')).open('a' if append else 'w');logs.append(f)
         children[name]=subprocess.Popen(cmd,stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
+        return children[name]
     sim='false' if args.live else 'true'
     common=['--ros-args','--params-file',str(ROOT/'scanplanner_integration/planner.yaml'),'-p','use_sim_time:='+sim,'-r','__ns:=/se2_scan']
     localized=args.live and not args.sensors_only
@@ -69,6 +75,7 @@ def main():
         speed=SPEED_PROFILES[args.speed_profile]
         common+=['-p',f'max_forward_speed:={speed["forward"]}','-p',f'max_lateral_speed:={speed["lateral"]}',
                  '-p',f'max_yaw_speed:={speed["yaw"]}','-p',f'control_lookahead_s:={speed["lookahead"]}',
+                 '-p','min_in_place_yaw_speed:=0.5',
                  '-p',f'manager.max_vel:={speed["forward"]}','-p',f'optimization.max_vel:={speed["forward"]}']
     remaps=['--ros-args','-p','use_sim_time:='+sim,'-r','/nvblox_lio/odom:='+odom]
     report=dict(source_sha256={str(q.relative_to(ROOT)):hashlib.sha256(q.read_bytes()).hexdigest() for q in (ROOT/'scanplanner_integration').rglob('*') if q.is_file() and q.suffix in ('.py','.cpp','.yaml','.patch') and 'runtime' not in q.parts and '__pycache__' not in q.parts},state='running',arguments={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items()},outbound_robot_commands=bool(args.execute),children={})
@@ -76,12 +83,26 @@ def main():
     print('SESSION '+str(out),flush=True)
     try:
         if args.live:
+            from live_inputs import ensure_live_inputs
+            report['live_inputs']=ensure_live_inputs(ROOT,out,spawn,lambda:running)
+            if not running:report['state']='complete';return
             spawn('m20',[sys.executable,str(ROOT/'scanplanner_integration/m20_udp.py'),
                          '--execute' if args.execute else '--telemetry-only','--output',str(out/'telemetry'),
                          *(['--enter-navigation'] if args.enter_navigation else [])])
         if localized:
-            spawn('localization',[sys.executable,str(ROOT/'scanplanner_integration/localization_node.py'),str(args.map),'--output',str(out/'localization')])
+            spawn('localization',[sys.executable,str(ROOT/'scanplanner_integration/localization_node.py'),str(args.map),'--output',str(out/'localization'),
+                  *(['--initial-map-pose',*map(str,args.initial_map_pose)] if args.initial_map_pose else [])])
         spawn('bridge',['ros2','run','se2_scan_bridge','scan_bridge',*common,
+                       # Cover the 1.5 m/s profile and its longer braking sweep.
+                       # Out-of-map voxels still reject motion; the optimizer
+                       # map and shared cloud retain their 4 m range.
+                       '-p','grid_map.max_ray_length:=4.0','-p','preprocess_ray_length:=4.0',
+                       # The guard checks raw occupancy with the full rectangle.
+                       # Its unused cylinder-inflation layer need not be built.
+                       '-p','grid_map.compute_inflation:=false',
+                       '-p','grid_map.resolution:=0.05',
+                       '-p','grid_map.sliding_map_size_x:=8.0','-p','grid_map.sliding_map_size_y:=8.0',
+                       '-p','grid_map.sliding_map_size_z:=2.0',
                        '-r','raw_cloud:=/LIDAR/POINTS_NX','-r','raw_body_pose:=/nvblox_lio/odom',
                        '-r','cloud:=/se2_scan/unused_map_cloud','-r','sensor_pose:=/se2_scan/unused_map_pose',
                        '-r','grid_map/occupancy:=guard/occupancy','-r','grid_map/occupancy_inflate:=guard/occupancy_inflate',
@@ -92,7 +113,7 @@ def main():
                   '-r','initial_path:=reference','-r','cloud:=world_cloud','-r','sensor_pose:=body_pose',
                   '-p','grid_map.sliding_map_frame_id:=se2_scan_optimizer_map'])
             spawn('route',[sys.executable,str(ROOT/'scanplanner_integration/route_node.py'),str(args.map),
-                          '--frame',frame,*remaps])
+                          '--frame',frame,*remaps,'-p','guard_resolution:=0.05'])
             if not args.no_global:
                 spawn('global',[sys.executable,str(ROOT/'global_planner/ros_node.py'),str(args.map),
                                 '--robot-start','--runtime',str(out/'global'),'--frame',frame,*remaps])
@@ -105,7 +126,8 @@ def main():
                     if display.get('Class')=='rviz_default_plugins/Odometry':display['Topic']['Value']=odom;display['Name']='M20 实时地图定位'
                 vm['Views']['Current'].update(Distance=9.,Pitch=.8,Yaw=.2,**{'Focal Point':dict(X=0.,Y=0.,Z=0.)})
                 config=out/'live.rviz';config.write_text(yaml.safe_dump(document,allow_unicode=True,sort_keys=False))
-            spawn('rviz',['rviz2','-d',str(config),'--ros-args','-p','use_sim_time:='+sim])
+            rviz_command=['rviz2','-d',str(config),'--ros-args','-p','use_sim_time:='+sim]
+            spawn('rviz',rviz_command)
         # Allow subscriptions/geometry to initialize before reading recorded frames.
         import rclpy
         from rclpy.qos import qos_profile_sensor_data
@@ -173,6 +195,19 @@ def main():
         while running:
             rclpy.spin_once(node,timeout_sec=.1)
             if args.duration and time.monotonic()-began>=args.duration:break
+            if rviz_restart_requested:
+                rviz_restart_requested=False
+                if rviz_command is not None:
+                    proc=children['rviz']
+                    if proc.poll() is None:
+                        os.killpg(proc.pid,signal.SIGINT)
+                        try:proc.wait(timeout=8)
+                        except subprocess.TimeoutExpired:os.killpg(proc.pid,signal.SIGKILL);proc.wait(timeout=3)
+                    spawn('rviz',rviz_command,append=True)
+                    report['children']['rviz']=children['rviz'].pid
+                    report['rviz_restarts']=report.get('rviz_restarts',0)+1
+                    (out/'session.json').write_text(json.dumps(report,indent=2))
+                    print('RViz window restarted; localization and planning processes retained.',flush=True)
             for name,proc in children.items():
                 if proc.poll() is not None:
                     if name=='player' and proc.returncode==0:
@@ -185,7 +220,7 @@ def main():
         report.update(state='failed',error=str(exc));raise
     finally:
         # Stop sources/optimizer before the bridge's last zero command; close UDP last.
-        for name in [k for k in children if k not in ('bridge','metrics','m20')]+['bridge','metrics','m20']:
+        for name in [k for k in children if k not in ('bridge','metrics','m20','lio')]+['bridge','metrics','m20','lio']:
             proc=children.get(name)
             if proc is None or proc.poll() is not None:continue
             os.killpg(proc.pid,signal.SIGINT)

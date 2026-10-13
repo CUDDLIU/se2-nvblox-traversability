@@ -5,7 +5,44 @@ import sys
 import unittest
 import numpy as np
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from core import Route,sample_bspline,route_yaws,velocity_packet,decode_packet,HEADER
+from core import Route,sample_bspline,route_yaws,velocity_packet,decode_packet,HEADER,adapt_route,polyline_distances
+
+class ReferenceAdaptation(unittest.TestCase):
+
+    def test_small_turns_merge_only_with_swept_body_permission(self):
+        poses=np.array([[0,0,0,0],[.15,0,0,0],[.15,0,0,.1],[.5,0,0,.1],[1,0,0,.1]])
+        accepted,report=adapt_route(poses,lambda pairs:np.ones(len(pairs),dtype=bool))
+        np.testing.assert_allclose(accepted,poses[[0,-1]])
+        self.assertEqual(report['merged_points'],3)
+        rejected,_=adapt_route(poses,lambda pairs:np.zeros(len(pairs),dtype=bool))
+        np.testing.assert_array_equal(rejected,poses)
+        reference,turn=Route(accepted).window([0,0,.56,0],.56)
+        self.assertFalse(turn);self.assertGreater(np.linalg.norm(reference[-1,:3]-reference[0,:3]),.9)
+
+    def test_corner_and_landing_not_cut_even_if_collision_free(self):
+        poses=np.array([[0,0,0,0],[1,0,0,0],[1,0,1,0],[0,0,1,0]])
+        adapted,_=adapt_route(poses,lambda pairs:np.ones(len(pairs),dtype=bool))
+        np.testing.assert_array_equal(adapted,poses)
+
+    def test_required_turn_preserved_by_sweep(self):
+        poses=np.array([[0,0,0,0],[.5,0,0,0],[.5,0,0,1.5],[.5,.5,0,1.5]])
+        def motions(pairs):
+            return [abs(a[3]-b[3])<.01 for a,b in pairs]
+        adapted,_=adapt_route(poses,motions)
+        np.testing.assert_array_equal(adapted,poses)
+        _,turn=Route(adapted).window([.5,0,.56,0],.56)
+        self.assertTrue(turn)
+
+    def test_sparse_reference_distance_uses_segments_and_height(self):
+        distance=polyline_distances([[1,0,0],[1,0,3]],[[0,0,0,0],[2,0,0,0]])
+        np.testing.assert_allclose(distance,[0,3])
+
+
+    def test_invalid_path_fails_closed(self):
+        with self.assertRaises(ValueError):adapt_route([[0,0,np.nan,0]],lambda _:[])
+
+
+
 
 class IntegrationCore(unittest.TestCase):
     def test_same_xy_other_floor_cannot_advance(self):
@@ -46,10 +83,10 @@ class IntegrationCore(unittest.TestCase):
         self.assertEqual(doc['Items']['X'],.12);self.assertEqual(doc['Items']['Yaw'],.2)
         with self.assertRaises(ValueError):decode_packet(raw[:-1])
         with self.assertRaises(ValueError):velocity_packet(float('nan'),0,0)
-        _,normal=decode_packet(velocity_packet(.5,-.25,.6))
-        self.assertEqual(normal['Items']['X'],.5)
-        self.assertEqual(normal['Items']['Y'],-.25)
-        for v in [(.51,0,0),(0,.26,0),(0,0,.61)]:
+        _,normal=decode_packet(velocity_packet(1.4,-.4,1.0))
+        self.assertEqual(normal['Items']['X'],1.4)
+        self.assertEqual(normal['Items']['Y'],-.4)
+        for v in [(1.51,0,0),(0,.41,0),(0,0,1.01),(1.5,.4,0)]:
             with self.assertRaises(ValueError):velocity_packet(*v)
 class Watchdog(unittest.TestCase):
     def test_ready_then_stale_estop_and_reverse_direction(self):
@@ -57,11 +94,20 @@ class Watchdog(unittest.TestCase):
         g=Gate();g.command=(.1,.02,.1);g.command_at=10
         b=dict(ControlUsageMode=1,HES=0,Direction=0,MotionState=17,Sleep=0)
         g.receive(dict(Type=1002,Command=6,Items=dict(BasicStatus=b)),10)
-        g.receive(dict(Type=1002,Command=4,Items={}),10)
+        g.receive(dict(Type=1002,Command=4,Items=dict(MotionStatus=dict(Height=.57))),10)
         self.assertEqual(g.output(10.05),g.command)
         self.assertEqual(g.output(10.13),(0,0,0))
         b['HES']=1;self.assertEqual(g.output(10.05),(0,0,0))
         b['HES']=0;b['Direction']=1;self.assertEqual(g.output(10.05),(0,0,0))
         b['Direction']=0;g.receive(dict(Type=2,Command=25,ErrorCode=5),10)
         self.assertEqual(g.output(10.05),(0,0,0))
+class TelemetryAcknowledgments(unittest.TestCase):
+    def test_acknowledgment_does_not_refresh_state(self):
+        from m20_udp import Gate
+        g=Gate()
+        for command in (4,6):g.receive(dict(Type=1002,Command=command,Items=dict(ErrorCode=0)),10.)
+        self.assertLess(g.motion_at,0);self.assertLess(g.basic_at,0)
+        g.receive(dict(Type=1002,Command=4,Items=dict(ErrorCode=57347,ErrorMessage='Unsupported protocol type')),11.)
+        self.assertTrue(g.failed);self.assertEqual(g.last_error['code'],57347)
+
 if __name__=='__main__':unittest.main()

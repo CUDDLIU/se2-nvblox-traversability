@@ -79,8 +79,36 @@ Visualization Manager:
     Line Style: Lines
     Line Width: 0.04
   - Class: rviz_default_plugins/PointCloud2
-    Name: 局部雷达点云
+    Name: ScanPlanner 局部占据体素（10 cm）
     Enabled: true
+    Topic:
+      Value: /se2_scan/grid_map/occupancy
+      Depth: 1
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+    Size (m): 0.1
+    Style: Boxes
+    Color Transformer: FlatColor
+    Color: 255; 165; 45
+    Alpha: 0.85
+    Decay Time: 0
+  - Class: rviz_default_plugins/PointCloud2
+    Name: ScanPlanner 膨胀体素（可选）
+    Enabled: false
+    Topic:
+      Value: /se2_scan/grid_map/occupancy_inflate
+      Depth: 1
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+    Size (m): 0.1
+    Style: Boxes
+    Color Transformer: FlatColor
+    Color: 255; 70; 70
+    Alpha: 0.3
+    Decay Time: 0
+  - Class: rviz_default_plugins/PointCloud2
+    Name: 局部雷达点云（可选）
+    Enabled: false
     Topic:
       Value: /se2_scan/world_cloud
       Depth: 1
@@ -125,5 +153,7 @@ Visualization Manager:
         Y: -9
         Z: 2.5
 Window Geometry:
-  Width: 1400
-  Height: 900
+  Width: 1280
+  Height: 720
+  X: 100
+  Y: 70

@@ -1,0 +1,45 @@
+#pragma once
+#include "scan_keys.hpp"
+namespace first {
+struct NearSupportScratch {
+ struct Chain {size_t head=0,tail=0;};
+ ScanKeys<Chain> cells;
+ std::vector<size_t> next;
+};
+// Spatial support on deskewed returns BEFORE voxel deduplication. Limit this
+// filter to dense near-range data; do not reject distant sparse objects.
+inline std::vector<uint8_t> near_support(const std::vector<std::pair<Point,Point>>& rays,
+                                        NearSupportScratch& scratch,double radius=.04,double range=1.5){
+ auto distance=[](Point a,Point b){return (a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y)+(a.z-b.z)*(a.z-b.z);};
+ auto bin=[&](Point p){return Key{int(std::floor(p.x/radius)),int(std::floor(p.y/radius)),int(std::floor(p.z/radius))};};
+ size_t count_near=0;const size_t end=rays.size();
+ for(auto&r:rays)if(distance(r.first,r.second)<=(range+radius)*(range+radius))++count_near;
+ auto&cells=scratch.cells;auto&next=scratch.next;cells.reset(count_near);next.resize(end);
+ for(size_t i=0;i<end;++i)if(distance(rays[i].first,rays[i].second)<=(range+radius)*(range+radius)){
+  auto [cell,added]=cells.insert(bin(rays[i].second));
+  if(added)cell->head=i;else next[cell->tail]=i;
+  cell->tail=i;next[i]=end;
+ }
+ std::vector<uint8_t> keep(rays.size(),1);
+ for(size_t i=0;i<rays.size();++i){
+  auto [origin,p]=rays[i];if(distance(origin,p)>range*range)continue;
+  auto k=bin(p);int count=0;Point first{};
+  for(int x=-1;x<=1&&count<2;++x)for(int y=-1;y<=1&&count<2;++y)for(int z=-1;z<=1&&count<2;++z){
+   auto cell=cells.find({k.x+x,k.y+y,k.z+z});if(!cell)continue;
+   // FIFO order is identical to the original per-bin vector, including which
+   // point is selected as the first distinct supporting neighbor.
+   for(size_t j=cell->head;j!=end;j=next[j]){auto q=rays[j].second;double d=distance(p,q);
+    if(d<1e-6||d>radius*radius||(count&&distance(q,first)<1e-6))continue;
+    if(!count)first=q;
+    if(++count==2)break;
+   }
+  }
+  keep[i]=count>=2;
+ }
+ return keep;
+}
+inline std::vector<uint8_t> near_support(const std::vector<std::pair<Point,Point>>& rays,
+                                        double radius=.04,double range=1.5){
+ NearSupportScratch scratch;return near_support(rays,scratch,radius,range);
+}
+}

@@ -2,10 +2,11 @@
   ros__parameters:
     use_sim_time: false
     fsm.navi_mode: 3
+    fsm.require_se2_corridor: true
     fsm.thresh_replan: 0.3
     fsm.thresh_no_replan: 0.1
-    fsm.max_replan_period: 0.3
-    fsm.planning_horizon: 1.5
+    fsm.max_replan_period: 0.05
+    fsm.planning_horizon: 3.0
     fsm.emergency_time: 1.0
     fsm.fail_safe: true
     fsm.max_replan_fail_count: 10
@@ -47,16 +48,18 @@
     grid_map.vis_height: 1.5
     grid_map.show_occ_time: false
     manager.max_vel: 0.35
-    manager.max_acc: 0.5
+    manager.max_acc: 1.0
     manager.max_jerk: 4.0
     manager.control_points_distance: 0.2
     manager.feasibility_tolerance: 0.5
-    manager.planning_horizon: 1.5
+    manager.planning_horizon: 3.0
     optimization.lambda_smooth: 1.0
     optimization.lambda_collision: 1.0
     optimization.lambda_feasibility: 0.1
     optimization.lambda_fitness: 1.0
+    optimization.lambda_route_guide: 10000.0
+    optimization.lambda_se2_corridor: 1000.0
     optimization.dist0: 0.2
     optimization.max_vel: 0.35
-    optimization.max_acc: 0.5
+    optimization.max_acc: 1.0
     optimization.order: 3

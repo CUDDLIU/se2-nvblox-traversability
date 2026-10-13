@@ -16,6 +16,8 @@
 #include <mutex>
 #include <thread>
 #include <unordered_set>
+#include <unordered_map>
+#include <array>
 #include <cstring>
 
 using Cloud=sensor_msgs::msg::PointCloud2;
@@ -34,15 +36,28 @@ public:
   frame_=declare_parameter<std::string>("world_frame","nvblox_odom");
   use_alignment_=declare_parameter<bool>("use_map_alignment",false);
   hz_=declare_parameter<double>("control_hz",30.);
-  max_x_=declare_parameter<double>("max_forward_speed",.50);
-  max_y_=declare_parameter<double>("max_lateral_speed",.25);
-  max_yaw_=declare_parameter<double>("max_yaw_speed",.60);
+  max_x_=declare_parameter<double>("max_forward_speed",1.50);
+  max_y_=declare_parameter<double>("max_lateral_speed",.40);
+  max_yaw_=declare_parameter<double>("max_yaw_speed",1.00);
+  min_turn_yaw_=declare_parameter<double>("min_in_place_yaw_speed",0.);
+  turn_tolerance_=declare_parameter<double>("in_place_yaw_tolerance",.10);
+  if(!std::isfinite(min_turn_yaw_)||min_turn_yaw_<0||min_turn_yaw_>.80||
+     !std::isfinite(turn_tolerance_)||turn_tolerance_<=0||turn_tolerance_>=.12)
+    throw std::runtime_error("invalid in-place turn limits");
   lookahead_=declare_parameter<double>("control_lookahead_s",.50);
-  if(!std::isfinite(max_x_)||!std::isfinite(max_y_)||!std::isfinite(max_yaw_)||max_x_<=0||max_x_>.50||max_y_<=0||max_y_>.25||max_yaw_<=0||max_yaw_>.60)throw std::runtime_error("invalid navigation velocity limits");
-  // Keep the target inside the one-second swept-trajectory collision check.
-  if(!std::isfinite(lookahead_)||lookahead_<.05||lookahead_>.75)throw std::runtime_error("control lookahead must be in [0.05, 0.75] seconds");
+  if(!std::isfinite(max_x_)||!std::isfinite(max_y_)||!std::isfinite(max_yaw_)||max_x_<=0||max_x_>1.50||max_y_<=0||max_y_>.40||max_yaw_<=0||max_yaw_>1.00)throw std::runtime_error("invalid navigation velocity limits");
+  // Keep the tracking target inside the speed-dependent swept-trajectory check.
+  if(!std::isfinite(lookahead_)||lookahead_<.05||lookahead_>1.5||lookahead_+.1>std::max(1.,max_x_/.5+.35))throw std::runtime_error("control lookahead must be in [0.05, 1.5] seconds and inside the checked sweep horizon");
   if(hz_<20 || hz_>100)throw std::runtime_error("control_hz must be in [20,100]");
   map_.initMap(this);
+  // The optimizer receives the same 4 m sampling even when the immediate
+  // collision map is smaller. Never truncate the shared world-cloud returns.
+  ray_limit_=declare_parameter<double>("preprocess_ray_length",4.);
+  double guard_ray=get_parameter("grid_map.max_ray_length").as_double();
+  if(!std::isfinite(ray_limit_)||!std::isfinite(guard_ray)||guard_ray<=0||ray_limit_<guard_ray)
+    throw std::runtime_error("preprocess ray length must cover the collision map");
+  voxel_resolution_=std::min(.05,map_.getResolution());
+  refine_hits_=declare_parameter<bool>("refine_collision_hits",true);
   auto latest=rclcpp::SensorDataQoS().keep_last(1);
   alignment_sub_=create_subscription<geometry_msgs::msg::PoseStamped>("map_transform",latest,[this](geometry_msgs::msg::PoseStamped::SharedPtr m){
     const auto&q=m->pose.orientation;Eigen::Quaterniond rotation(q.w,q.x,q.y,q.z);auto translation=xyz(m->pose.position);
@@ -57,6 +72,8 @@ public:
   ref_sub_=create_subscription<Path>("reference",rclcpp::QoS(1).reliable().transient_local(),[this](Path::SharedPtr m){
     std::lock_guard<std::mutex> l(lock_);
     if(m->header.frame_id!=frame_)m->poses.clear();
+    body_reference_.poses.clear();
+    for(const auto& p:m->poses){auto v=xyz(p.pose.position);body_reference_.poses.emplace_back(v.x(),v.y(),v.z(),tf2::getYaw(p.pose.orientation));}
     reference_=m; blocked_=true; have_traj_=false; turn_ok_=false;
   });
   traj_sub_=create_subscription<scan_planner_msgs::msg::Bspline>("verified_bspline",1,[this](scan_planner_msgs::msg::Bspline::SharedPtr m){trajectory(m);});
@@ -69,6 +86,8 @@ public:
   });
   alive_sub_=create_subscription<std_msgs::msg::Bool>("route_alive",1,[this](std_msgs::msg::Bool::SharedPtr m){route_alive_=m->data?steady():0.;});
   cloud_pub_=create_publisher<Cloud>("world_cloud",latest);
+  collision_pub_=create_publisher<Cloud>("guard/collision_occupancy",latest);
+  observed_pub_=create_publisher<Cloud>("guard/observed_voxels",latest);
   pose_pub_=create_publisher<Odom>("body_pose",latest);
   aligned_pub_=create_publisher<Odom>("aligned_odom",latest);
   cmd_pub_=create_publisher<geometry_msgs::msg::Twist>("cmd_vel",latest);
@@ -117,6 +136,92 @@ private:
   throw std::runtime_error(std::string("missing field ")+name);
  }
  template<class T>static T read(const uint8_t*p){T v;std::memcpy(&v,p,sizeof(v));return v;}
+ struct FineCell {Eigen::Vector3i id;uint32_t xy=0;};
+ std::unordered_map<uint64_t,FineCell> fine_cells_;
+ bool refine_hits_=true;double last_collision_publish_=0,last_observed_publish_=0;
+ static uint64_t cellKey(const Eigen::Vector3i&i){return (uint64_t(int64_t(i.x())+1048576)<<42)^
+   (uint64_t(int64_t(i.y())+1048576)<<21)^uint64_t(int64_t(i.z())+1048576);}
+ void observeFine(const Eigen::Vector3d&w){
+  Eigen::Vector3i id;map_.posToIndex(w,id);uint64_t key=cellKey(id);
+  auto found=fine_cells_.find(key);
+  // An older unexplained occupied cell keeps its complete coarse volume.
+  if(found==fine_cells_.end()){
+   if(map_.getOccupancy(id)==1)return;
+   found=fine_cells_.emplace(key,FineCell{id,0}).first;
+  }
+  double step=map_.getResolution()/5.;
+  int x=std::clamp(int(std::floor(w.x()/step))-5*id.x(),0,4);
+  int y=std::clamp(int(std::floor(w.y()/step))-5*id.y(),0,4);
+  found->second.xy|=uint32_t(1)<<(5*x+y);
+ }
+ void pruneFine(){
+  // Retain every measured subcell until the parent's original ray evidence
+  // clears occupancy. No timeout or absent-return clearing is introduced.
+  for(auto it=fine_cells_.begin();it!=fine_cells_.end();){
+   if(map_.getOccupancy(it->second.id)!=1)it=fine_cells_.erase(it);else ++it;
+  }
+ }
+ template<class F> void collisionCells(const Eigen::Vector3i&id,F visit){
+  double r=map_.getResolution();Eigen::Vector3d center;map_.indexToPos(id,center);
+  auto it=fine_cells_.find(cellKey(id));
+  if(!refine_hits_||it==fine_cells_.end()){visit(center,r);return;}
+  uint32_t bits=it->second.xy;double step=r/5.;
+  while(bits){int bit=__builtin_ctz(bits);bits&=bits-1;
+   Eigen::Vector3d p=center;p.x()=(id.x()*5+bit/5+.5)*step;p.y()=(id.y()*5+bit%5+.5)*step;
+   visit(p,step);
+  }
+ }
+ void publishCollision(){
+  if(steady()-last_collision_publish_<.1)return;
+  last_collision_publish_=steady();
+  Eigen::Vector3d origin;{std::lock_guard<std::mutex>l(lock_);origin=position_;}
+  Eigen::Vector3i low,high;map_.posToIndex(origin-Eigen::Vector3d(1.4,1.4,.4),low);
+  map_.posToIndex(origin+Eigen::Vector3d(1.4,1.4,.7),high);
+  std::vector<std::array<float,4>> points;
+  for(int x=low.x();x<=high.x();++x)for(int y=low.y();y<=high.y();++y)for(int z=low.z();z<=high.z();++z){
+   Eigen::Vector3i id(x,y,z);if(map_.getOccupancy(id)!=1)continue;
+   collisionCells(id,[&](const Eigen::Vector3d&p,double size){points.push_back({float(p.x()),float(p.y()),float(p.z()),float(size)});});
+  }
+  Cloud msg;msg.header.frame_id=frame_;msg.header.stamp=now();sensor_msgs::PointCloud2Modifier mod(msg);
+  mod.setPointCloud2Fields(4,"x",1,sensor_msgs::msg::PointField::FLOAT32,"y",1,sensor_msgs::msg::PointField::FLOAT32,
+                          "z",1,sensor_msgs::msg::PointField::FLOAT32,"resolution",1,sensor_msgs::msg::PointField::FLOAT32);
+  mod.resize(points.size());if(!points.empty())std::memcpy(msg.data.data(),points.data(),points.size()*sizeof(points[0]));
+  collision_pub_->publish(msg);
+ }
+ // Export measured map states separately from occupancy: missing points and
+ // uninitialized voxels must never invalidate saved-map geometry.
+ void publishObserved(const builtin_interfaces::msg::Time& source_stamp){
+  if(observed_pub_->get_subscription_count()==0 || steady()-last_observed_publish_<.5)return;
+  last_observed_publish_=steady();
+  Eigen::Vector3d origin;{std::lock_guard<std::mutex>l(lock_);origin=position_;}
+  Eigen::Vector3i low,high;map_.posToIndex(origin-Eigen::Vector3d(2.5,2.5,.9),low);
+  map_.posToIndex(origin+Eigen::Vector3d(2.5,2.5,.9),high);
+  std::vector<std::array<float,5>> points;
+  for(int x=low.x();x<=high.x();++x)for(int y=low.y();y<=high.y();++y)for(int z=low.z();z<=high.z();++z){
+   Eigen::Vector3i id(x,y,z);
+   if(!map_.isInMap(id)||map_.isUnknown(id))continue;
+   Eigen::Vector3d p;map_.indexToPos(id,p);
+   points.push_back({float(p.x()),float(p.y()),float(p.z()),float(map_.getResolution()),float(map_.getOccupancy(id))});
+  }
+  Cloud msg;msg.header.frame_id=frame_;msg.header.stamp=source_stamp;
+  sensor_msgs::PointCloud2Modifier mod(msg);
+  mod.setPointCloud2Fields(5,"x",1,sensor_msgs::msg::PointField::FLOAT32,"y",1,sensor_msgs::msg::PointField::FLOAT32,
+   "z",1,sensor_msgs::msg::PointField::FLOAT32,"resolution",1,sensor_msgs::msg::PointField::FLOAT32,"state",1,sensor_msgs::msg::PointField::FLOAT32);
+  mod.resize(points.size());if(!points.empty())std::memcpy(msg.data.data(),points.data(),points.size()*sizeof(points[0]));
+  observed_pub_->publish(msg);
+ }
+ struct VoxelEntry {uint64_t key=0;uint32_t epoch=0;uint8_t sensor=0;};
+ std::vector<VoxelEntry> voxel_table_=std::vector<VoxelEntry>(1<<18);
+ uint32_t voxel_epoch_=0;
+ bool keepVoxel(uint64_t key,uint8_t sensor=0){
+  uint64_t h=key^(uint64_t(sensor)*0x9e3779b97f4a7c15ULL);h=(h^(h>>30))*0xbf58476d1ce4e5b9ULL;h=(h^(h>>27))*0x94d049bb133111ebULL;h^=h>>31;
+  for(size_t i=0;i<voxel_table_.size();++i){
+   auto& e=voxel_table_[(h+i)&(voxel_table_.size()-1)];
+   if(e.epoch!=voxel_epoch_){e.key=key;e.sensor=sensor;e.epoch=voxel_epoch_;return true;}
+   if(e.key==key&&e.sensor==sensor)return false;
+  }
+  return true; // Saturation keeps extra measured rays, never drops obstacles.
+ }
  void drain(){
   if(!pending_)return;
   auto c=pending_;double began=ingress_;
@@ -124,6 +229,7 @@ private:
    if(c->header.frame_id!="lidar_link"&&c->header.frame_id!="base_link_dog")throw std::runtime_error("unverified raw cloud frame");
    if(c->is_bigendian||uint64_t(c->width)*c->point_step>c->row_step||uint64_t(c->height)*c->row_step>c->data.size())throw std::runtime_error("bad cloud layout");
    int fx=field(*c,"x",7,4),fy=field(*c,"y",7,4),fz=field(*c,"z",7,4),ft=field(*c,"timestamp",8,8);
+   int ring=-1;for(const auto& f:c->fields)if(f.name=="ring")ring=field(*c,"ring",4,2);
    double lo=stamp(c->header.stamp),hi=lo;
    for(size_t row=0;row<c->height;++row)for(size_t col=0;col<c->width;++col){
     double t=read<double>(c->data.data()+row*c->row_step+col*c->point_step+ft);
@@ -135,37 +241,58 @@ private:
    int n=std::max(1,int(std::ceil((hi-lo)/.0005)));double dt=(hi-lo)/n;
    std::vector<Eigen::Isometry3f> transforms;transforms.reserve(n+1);
    for(int i=0;i<=n;++i){auto p=se2_deskew::interpolate(poses_,std::min(hi,lo+i*dt));Eigen::Isometry3f t=Eigen::Isometry3f::Identity();t.linear()=p.q.toRotationMatrix().cast<float>();t.translation()=p.p.cast<float>();transforms.push_back(t);}
-   std::vector<Eigen::Vector3f> points;points.reserve(c->width*c->height);
-   std::unordered_set<int64_t> voxels;voxels.reserve(c->width*c->height);
+   std::vector<Eigen::Vector3f> points,origins;points.reserve(c->width*c->height);origins.reserve(c->width*c->height);
+   if(++voxel_epoch_==0){for(auto& e:voxel_table_)e.epoch=0;voxel_epoch_=1;}
    for(size_t row=0;row<c->height;++row)for(size_t col=0;col<c->width;++col){
     const uint8_t*p=c->data.data()+row*c->row_step+col*c->point_step;
     Eigen::Vector3f v(read<float>(p+fx),read<float>(p+fy),read<float>(p+fz));double t=read<double>(p+ft);
-    if(!v.allFinite()||!std::isfinite(t)||t<lo||t>hi||v.squaredNorm()>16.f)continue;
+    if(!v.allFinite()||!std::isfinite(t)||t<lo||t>hi)continue;
     // Measured merged NX cloud is already body aligned; no guessed lidar rotation.
     if(std::abs(v.x())<.41f&&std::abs(v.y())<.253f&&v.z()>-.15f&&v.z()<.35f)continue;
     int i=dt>0?std::clamp(int(std::llround((t-lo)/dt)),0,n):0;
     Eigen::Vector3f w=transforms[i]*v;
-    // Keep one return per 4 cm world voxel, never average obstacle surfaces away.
-    Eigen::Vector3i k=(w/.04f).array().floor().cast<int>();
+    if(!w.allFinite())continue;
+    // Far returns still prove free space before the hit. GridMap clips these
+    // rays to max_ray_length and marks the clipped endpoint FREE. Dropping
+    // them here permanently retains obstacles that have left the near field.
+    Eigen::Vector3d delta=w.cast<double>()-base.p;double range2=delta.squaredNorm();
+    if(refine_hits_&&range2<=4.&&delta.z()>-.4&&delta.z()<.7)observeFine(w.cast<double>());
+    bool far=range2>ray_limit_*ray_limit_;
+    Eigen::Vector3d key_point=w.cast<double>();
+    if(far)key_point=base.p+delta*((ray_limit_+.10)/std::sqrt(range2));
+    // Use an aligned divisor of the 5/10 cm occupancy grids: each occupied
+    // fine voxel retains a hit. Never average obstacle surfaces away.
+    // Far-ray deduplication is bounded at the local horizon; retain the actual
+    // measured endpoint and a separate key set so no far ray suppresses a hit.
+    Eigen::Vector3i k=(key_point/voxel_resolution_).array().floor().cast<int>();
     int64_t key=(int64_t(k.x()+1048576)<<42)^(int64_t(k.y()+1048576)<<21)^int64_t(k.z()+1048576);
-    if(voxels.insert(key).second)points.push_back(w);
+    uint16_t channel=ring<0?0:read<uint16_t>(p+ring);
+    if(channel>=192)throw std::runtime_error("ring outside verified M20 front/rear mapping");
+    int sensor=channel/96;
+    // Keep each sensor's ray even if their return endpoints share a voxel.
+    if(keepVoxel(uint64_t(key)|(uint64_t(far)<<63),sensor)){
+      points.push_back(w);
+      Eigen::Vector3f local_origin=ring<0?Eigen::Vector3f::Zero().eval():Eigen::Vector3f(sensor==0?.32028f:-.32028f,0.f,-.013f);
+      origins.push_back(transforms[i]*local_origin);
+    }
    }
    pending_.reset();
    if(points.empty())throw std::runtime_error("empty cloud");
    auto world=std::make_shared<Cloud>();world->header=c->header;world->header.frame_id=frame_;
-   sensor_msgs::PointCloud2Modifier mod(*world);mod.setPointCloud2FieldsByString(1,"xyz");mod.resize(points.size());
-   sensor_msgs::PointCloud2Iterator<float>x(*world,"x"),y(*world,"y"),z(*world,"z");
-   for(const auto&p:points){*x=p.x();*y=p.y();*z=p.z();++x;++y;++z;}
+   sensor_msgs::PointCloud2Modifier mod(*world);
+   mod.setPointCloud2Fields(6,"x",1,7,"y",1,7,"z",1,7,"origin_x",1,7,"origin_y",1,7,"origin_z",1,7);mod.resize(points.size());
+   for(size_t j=0;j<points.size();++j){float values[6]={points[j].x(),points[j].y(),points[j].z(),origins[j].x(),origins[j].y(),origins[j].z()};
+    std::memcpy(world->data.data()+j*world->point_step,values,sizeof(values));}
    auto pose=std::make_shared<Odom>();pose->header=world->header;pose->child_frame_id="base_link_dog";
    pose->pose.pose.position.x=base.p.x();pose->pose.pose.position.y=base.p.y();pose->pose.pose.position.z=base.p.z();
    pose->pose.pose.orientation.w=base.q.w();pose->pose.pose.orientation.x=base.q.x();pose->pose.pose.orientation.y=base.q.y();pose->pose.pose.orientation.z=base.q.z();
-   double transformed=steady();map_.ingest(world,pose);double mapped=steady();
+   double transformed=steady();map_.ingest(world,pose);pruneFine();double mapped=steady();
    cloud_time_=steady();cloud_ros_=stamp(c->header.stamp);check();
    std_msgs::msg::Float64MultiArray m;
    // schema: source stamp, ingress steady, decision steady, preprocess ms,
    // map ms, decision ms, total ms, sensor age ms, input points, kept, replaced, dropped
    double end=steady();m.data={stamp(c->header.stamp),began,end,(transformed-began)*1000,(mapped-transformed)*1000,(end-mapped)*1000,(end-began)*1000,(now().seconds()-stamp(c->header.stamp))*1000,double(c->width*c->height),double(points.size()),double(replaced_),double(dropped_),double(blocked_),double(active_path_)};
-   metric_pub_->publish(m);cloud_pub_->publish(*world);
+   metric_pub_->publish(m);cloud_pub_->publish(*world);publishCollision();publishObserved(c->header.stamp);
   }catch(const std::exception&e){pending_.reset();++dropped_;blocked_=true;RCLCPP_WARN_THROTTLE(get_logger(),*get_clock(),2000,"cloud rejected: %s",e.what());}
  }
  void trajectory(scan_planner_msgs::msg::Bspline::SharedPtr m){
@@ -178,28 +305,38 @@ private:
   {std::lock_guard<std::mutex> l(lock_);traj_=s;velocity_=s.getDerivative();duration_=s.getTimeSum();traj_time_=steady();progress_=0;have_traj_=true;blocked_=true;}
   check();
  }
- double desiredYaw(const Eigen::Vector3d& pos,const Path&r)const{
-  double best=1e99,y=yaw_;
-  for(size_t i=0;i<r.poses.size();++i){auto a=xyz(r.poses[i].pose.position);double d=(a-pos).squaredNorm();
-   if(d<best){best=d;y=tf2::getYaw(r.poses[i].pose.orientation);}
-   if(i+1<r.poses.size()){
-    auto b=xyz(r.poses[i+1].pose.position);auto v=b-a;double n=v.squaredNorm();if(n<1e-8)continue;
-    double u=std::clamp((pos-a).dot(v)/n,0.,1.);d=(pos-a-u*v).squaredNorm();
-    if(d<best){best=d;double ya=tf2::getYaw(r.poses[i].pose.orientation),yb=tf2::getYaw(r.poses[i+1].pose.orientation);y=ya+u*wrap(yb-ya);}
-   }
-  }return y;
+ double desiredYaw(const Eigen::Vector3d& pos,const Path&)const{
+  return body_reference_.yawAt(pos,yaw_);
  }
- bool occupied(const Eigen::Vector3d&p,double yaw){
-  // Complete physical rectangle, including corners, against SCAN's raw map.
-  // Leg/step support is checked by the static SE(2) mesh validator. This prism
-  // is the torso, from body -0.10 m to +0.40 m, with voxel intersection padding.
+ bool occupied(const Eigen::Vector3d&p,double yaw,double extra_a=0.,double extra_b=0.,double extra_z=0.){
   double c=std::cos(yaw),s=std::sin(yaw),r=map_.getResolution();
-  Eigen::Vector3i low,high;map_.posToIndex(p-Eigen::Vector3d(.6,.6,.1+r),low);map_.posToIndex(p+Eigen::Vector3d(.6,.6,.4+r),high);
+  double a=.41+extra_a,b=.253+extra_b,rx=a*std::abs(c)+b*std::abs(s)+r,ry=a*std::abs(s)+b*std::abs(c)+r;
+  Eigen::Vector3i low,high;map_.posToIndex(p-Eigen::Vector3d(rx,ry,.1+r+extra_z),low);map_.posToIndex(p+Eigen::Vector3d(rx,ry,.4+r+extra_z),high);
   for(int x=low.x();x<=high.x();++x)for(int y=low.y();y<=high.y();++y){
    Eigen::Vector3d w;map_.indexToPos(Eigen::Vector3i(x,y,0),w);double dx=w.x()-p.x(),dy=w.y()-p.y();
-   double pad=.5*r*(std::abs(c)+std::abs(s));if(std::abs(c*dx+s*dy)>.41+pad||std::abs(-s*dx+c*dy)>.253+pad)continue;
-   for(int z=low.z();z<=high.z();++z)if(map_.getOccupancy(Eigen::Vector3i(x,y,z))!=0)return true;
+   double pad=.5*r*(std::abs(c)+std::abs(s));if(std::abs(c*dx+s*dy)>a+pad||std::abs(-s*dx+c*dy)>b+pad)continue;
+   for(int z=low.z();z<=high.z();++z){
+    Eigen::Vector3i id(x,y,z);int state=map_.getOccupancy(id);if(state<0)return true;if(state==0)continue;
+    bool hit=false;
+    collisionCells(id,[&](const Eigen::Vector3d&q,double size){
+     double ax=q.x()-p.x(),ay=q.y()-p.y(),padding=.5*size*(std::abs(c)+std::abs(s));
+     if(std::abs(c*ax+s*ay)<=a+padding&&std::abs(-s*ax+c*ay)<=b+padding)hit=true;
+    });
+    if(hit)return true;
+   }
   }return false;
+ }
+ bool clearSweep(const Eigen::Vector3d&a,double ya,const Eigen::Vector3d&b,double yb,int depth=0){
+  double dy=wrap(yb-ya),mid_yaw=ya+dy*.5,c=std::cos(mid_yaw),s=std::sin(mid_yaw);
+  Eigen::Vector3d mid=(a+b)*.5,d=b-a;
+  // This rectangle encloses EVERY translated/rotated body in the interval.
+  // Subdivide only near occupied geometry; never skip a thin subcell between
+  // discrete poses. Failure to prove separation remains a blocked decision.
+  double angular_pad=2*std::hypot(.41,.253)*std::sin(std::abs(dy)/4);
+  if(!occupied(mid,mid_yaw,.5*std::abs(c*d.x()+s*d.y())+angular_pad,
+               .5*std::abs(-s*d.x()+c*d.y())+angular_pad,.5*std::abs(d.z())))return true;
+  if(depth>=8||occupied(a,ya)||occupied(b,yb))return false;
+  return clearSweep(a,ya,mid,mid_yaw,depth+1)&&clearSweep(mid,mid_yaw,b,yb,depth+1);
  }
  void check(){
   active_path_=false;
@@ -212,20 +349,14 @@ private:
    if(have_traj_){
     double best=1e99,tbest=progress_;for(double t=std::max(0.,progress_-.1);t<=std::min(duration_,progress_+.8);t+=.025){double d=(traj_.evaluateDeBoorT(t)-position_).squaredNorm();if(d<best){best=d;tbest=t;}}
     progress_=tbest;
-    for(double t=tbest;t<=std::min(duration_,tbest+1.);t+=.08){auto p=traj_.evaluateDeBoorT(t);samples.push_back({p,desiredYaw(p,*reference_)});}
+    for(double t=tbest;t<=std::min(duration_,tbest+std::max(1.,max_x_/.5+.35));t+=.08){auto p=traj_.evaluateDeBoorT(t);samples.push_back({p,desiredYaw(p,*reference_)});}
    }else if(turn_ok_){double dy=wrap(tf2::getYaw(reference_->poses.back().pose.orientation)-yaw_);for(int i=1;i<=10;++i)samples.push_back({position_,yaw_+dy*i/10});}
    else{blocked_=true;return;}
   }
   bool blocked=false;
   for(size_t i=0;i<samples.size() && !blocked;++i){
     const auto&a=samples[i?i-1:0];const auto&b=samples[i];
-    double dy=wrap(b.second-a.second);
-    int n=std::max(1,std::max(int(std::ceil((b.first-a.first).norm()/.04)),int(std::ceil(std::abs(dy)/.06))));
-    // Also cover the measured-pose -> spline connector and changing yaw, not
-    // only spline samples. The voxel intersection padding covers substeps.
-    for(int j=0;j<=n;++j){double u=double(j)/n;
-      if(occupied(a.first+u*(b.first-a.first),a.second+u*dy)){blocked=true;break;}
-    }
+    if(!clearSweep(a.first,a.second,b.first,b.second))blocked=true;
   }
   blocked_=blocked;decision_time_=steady();std_msgs::msg::Bool b;b.data=blocked;blocked_pub_->publish(b);
  }
@@ -248,7 +379,16 @@ private:
      }else if(turn_ok_){desired=tf2::getYaw(reference_->poses.back().pose.orientation);reason="turn";}else reason="stale_trajectory";
      if(reason=="tracking"||reason=="turn"){
       double dy=wrap(desired-yaw_);cmd.angular.z=std::clamp(1.5*dy,-max_yaw_,max_yaw_);
-      if(std::abs(dy)<.35){double c=std::cos(yaw_),s=std::sin(yaw_);cmd.linear.x=std::clamp(c*vel.x()+s*vel.y(),-max_x_,max_x_);cmd.linear.y=std::clamp(-s*vel.x()+c*vel.y(),-max_y_,max_y_);}
+      if(reason=="turn"){
+       // Cmd=25 standard/basic gait cannot execute |Yaw| below 0.5 rad/s.
+       // Apply the floor only to the already certified pure-rotation sweep.
+       // Stop inside Route::window's 0.12 rad acceptance band; never amplify
+       // a translation command or an unsafe/stale/blocked zero command.
+       if(std::abs(dy)<=turn_tolerance_){cmd.angular.z=0.;reason="turn_aligned";}
+       else if(max_yaw_<min_turn_yaw_){cmd.angular.z=0.;reason="turn_limit_below_gait_minimum";}
+       else cmd.angular.z=std::copysign(std::max(min_turn_yaw_,std::abs(cmd.angular.z)),dy);
+      }
+      {double c=std::cos(yaw_),s=std::sin(yaw_);cmd.linear.x=std::clamp(c*vel.x()+s*vel.y(),-max_x_,max_x_);cmd.linear.y=std::clamp(-s*vel.x()+c*vel.y(),-max_y_,max_y_);double speed=std::hypot(cmd.linear.x,cmd.linear.y);if(speed>max_x_){cmd.linear.x*=max_x_/speed;cmd.linear.y*=max_x_/speed;}}
      }
     }else reason=!fresh?"stale_sensor_or_decision":blocked_?"blocked":"no_route";
     }
@@ -264,15 +404,16 @@ private:
   }
   if(rclcpp::ok()){geometry_msgs::msg::Twist stop;cmd_pub_->publish(stop);geometry_msgs::msg::TwistStamped s;s.header.stamp=now();s.header.frame_id="base_link_dog";stamped_pub_->publish(s);}
  }
- GridMap map_;std::string frame_;double hz_,max_x_,max_y_,max_yaw_,lookahead_;std::deque<Pose>poses_;Cloud::SharedPtr pending_;double ingress_=0;
+ GridMap map_;std::string frame_;double hz_,max_x_,max_y_,max_yaw_,min_turn_yaw_,turn_tolerance_,lookahead_,ray_limit_,voxel_resolution_;std::deque<Pose>poses_;Cloud::SharedPtr pending_;double ingress_=0;
  bool use_alignment_;Eigen::Quaterniond map_rotation_=Eigen::Quaterniond::Identity();Eigen::Vector3d map_translation_=Eigen::Vector3d::Zero();std::atomic<double>alignment_time_{0};
  std::mutex lock_;Eigen::Vector3d position_=Eigen::Vector3d::Zero();double yaw_=0,odom_time_=0,odom_ros_=0;
+ scan_reference::Geometry body_reference_;
  Path::SharedPtr reference_;Spline traj_,velocity_;double duration_=0,progress_=0,traj_time_=0;bool have_traj_=false;
  std::atomic<bool>blocked_{true},run_{true},turn_ok_{false},active_path_{false};std::atomic<double>cloud_time_{0},cloud_ros_{0},decision_time_{0},route_alive_{0};
  size_t replaced_=0,dropped_=0;std::thread control_;
  rclcpp::Subscription<Cloud>::SharedPtr cloud_sub_;rclcpp::Subscription<Odom>::SharedPtr odom_sub_;rclcpp::Subscription<Path>::SharedPtr ref_sub_;
  rclcpp::Subscription<scan_planner_msgs::msg::Bspline>::SharedPtr traj_sub_;rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr turn_sub_;rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr alive_sub_;
- rclcpp::Publisher<Cloud>::SharedPtr cloud_pub_;rclcpp::Publisher<Odom>::SharedPtr pose_pub_;rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_pub_;
+ rclcpp::Publisher<Cloud>::SharedPtr cloud_pub_,collision_pub_,observed_pub_;rclcpp::Publisher<Odom>::SharedPtr pose_pub_;rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_pub_;
  rclcpp::Publisher<Odom>::SharedPtr aligned_pub_;rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr alignment_sub_;
  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr stamped_pub_;
  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr metric_pub_,control_metric_;

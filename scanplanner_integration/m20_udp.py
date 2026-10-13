@@ -13,13 +13,18 @@ class Gate:
     def __init__(self):
         self.command=(0.,0.,0.);self.command_at=-1e9
         self.basic={};self.basic_at=-1e9;self.motion_at=-1e9
-        self.failed=False
+        self.failed=False;self.last_error=None
     def receive(self,doc,now):
         key=(doc.get('Type'),doc.get('Command'));items=doc.get('Items',{})
-        if key==(1002,6):self.basic=items.get('BasicStatus',{});self.basic_at=now
-        if key==(1002,4):self.motion_at=now
+        if key==(1002,6) and isinstance(items.get('BasicStatus'),dict) and items['BasicStatus']:
+            self.basic=items['BasicStatus'];self.basic_at=now
+        if key==(1002,4):
+            try:
+                if .2<float(items['MotionStatus']['Height'])<1.:self.motion_at=now
+            except (KeyError,TypeError,ValueError):pass
         error=doc.get('ErrorCode',items.get('ErrorCode',0))
-        if error not in (None,0,'0'):self.failed=True
+        if error not in (None,0,'0'):
+            self.failed=True;self.last_error=dict(type=key[0],command=key[1],code=error,message=items.get('ErrorMessage'))
     def stop_reason(self,now):
         b=self.basic
         if self.failed:return 'error_latched'
@@ -78,6 +83,7 @@ def main():
     sequence=0;last_heartbeat=-1e9;last_report=-1e9;deadline=time.monotonic();running=[True]
     mode_confirmed=False;mode_attempts=0;mode_requested_at=-1e9;previous_mode=None
     velocity_packets=0;nonzero_packets=0;last_send=None;max_send_period_ms=0.
+    receive_stats={};received_at={}
     signal.signal(signal.SIGINT,lambda *_:running.__setitem__(0,False));signal.signal(signal.SIGTERM,lambda *_:running.__setitem__(0,False))
     def send(data):sock.sendto(data,target)
     try:
@@ -91,6 +97,11 @@ def main():
                 if peer!=target:continue
                 try:
                     message_id,doc=decode_packet(data);gate.receive(doc,now)
+                    key=f'{doc.get("Type")}/{doc.get("Command")}'
+                    stats=receive_stats.setdefault(key,dict(packets=0,max_gap_s=0.))
+                    stats['packets']+=1
+                    if key in received_at:stats['max_gap_s']=max(stats['max_gap_s'],now-received_at[key])
+                    received_at[key]=now
                     if (doc.get('Type'),doc.get('Command'))==(1002,4):
                         raw.publish(String(data=json.dumps(dict(receive_time_ns=time.time_ns(),message_id=message_id,PatrolDevice=doc))))
                 except (ValueError,TypeError):continue
@@ -119,10 +130,13 @@ def main():
                     navigation_mode_requested=args.enter_navigation,mode_attempts=mode_attempts,mode_confirmed=mode_confirmed,
                     stop_reason='telemetry_only' if args.telemetry_only else gate.stop_reason(now),
                     command_receive=command_rx,velocity_packets=velocity_packets,nonzero_packets=nonzero_packets,
-                    max_send_period_ms=max_send_period_ms)
+                    max_send_period_ms=max_send_period_ms,
+                    last_error=gate.last_error,telemetry_receive=receive_stats,udp_local_port=sock.getsockname()[1])
                 status.publish(String(data=json.dumps(report)))
                 if args.output:
                     tmp=args.output/'status.tmp';tmp.write_text(json.dumps(report,indent=2));tmp.replace(args.output/'status.json')
+                    with (args.output/'health.jsonl').open('a') as log:
+                        log.write(json.dumps(dict(time_ns=time.time_ns(),**report))+'\n')
                 last_report=now
             deadline+=1/30
             time.sleep(max(0.,deadline-time.monotonic()))
