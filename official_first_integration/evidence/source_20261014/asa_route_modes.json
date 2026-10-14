@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "sequence": [
+    "flat",
+    "stair_up",
+    "flat"
+  ],
+  "scope": "atomic route mode switching, stale/display route ignored, gait confirmation and cancel; no physical stair simulation",
+  "late_result_after_cancel_rejected": true,
+  "jetson_build": true,
+  "jetson_source_unit_tests": 30,
+  "jetson_annotation_unit_tests": 4,
+  "local_asa_global_tests": 9,
+  "local_annotation_unit_tests": 4,
+  "physical_stair_test": false,
+  "extra_local_command_sweep": false
+}

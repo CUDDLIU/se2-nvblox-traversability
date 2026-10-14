@@ -1,0 +1,26 @@
+{
+  "case": "source_gates",
+  "passed": true,
+  "scope": "isolated localhost ROS 2 with simulated telemetry; no actuator",
+  "body": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "holds": {
+    "idle": 94,
+    "native_initializing": 1,
+    "waiting_goal_ack": 4,
+    "stale_native_command": 2,
+    "none": 59,
+    "stale_cloud": 6,
+    "stale_localization": 7
+  },
+  "states": {
+    "idle": 98,
+    "tracking": 63,
+    "stale_cloud": 6,
+    "stale_odometry": 6
+  },
+  "command_count": 621
+}

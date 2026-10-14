@@ -1,0 +1,17 @@
+{
+  "official_first_integration/source/core.cpp": "426296d024f2c68e88fc90941e84c9cc2ae52cd3cd4f7f76a8473c25fe466254",
+  "official_first_integration/source/core.py": "2b1e7f509a656f059186ed565bfede2fb1a629e900a56f2ccb17e389f838c4bc",
+  "official_first_integration/source/runtime.py": "7ae667803a84b427650c04f8f2ab325315672dd37fd85d3f8c69393e8ca47163",
+  "official_first_integration/source/test_cloud_equivalence.py": "909875f72c286699b81b6ddef267adad3ccecf5f5d93cad0d3ccf80a983b164d",
+  "official_first_integration/source/benchmark_cloud.py": "bcb256bc8a9d249e76fade7ff657eaeef11e3aaaedeb6c9f12152108d1e3c064",
+  "official_first_integration/source/acceptance_latency.py": "6f379e68dc9d289a80c3afb2a2d75dd3aa30c2fa7ba70df67536ac049a53cf5f",
+  "official_first_integration/native/adapter.py": "596a7a961a5b7073fe784ff3281470f834749f23fddc47b9cb4f8c23dbd3d8ba",
+  "official_first_integration/reference_alignment.py": "c3fd6415a6b6cbd54d03e861174c451b95b7676f15026035d2b3f344e09a07ac",
+  "official_first_integration/run.py": "69d6add1edf1b097d10783bca5fe21018775bfe6b9ee3944f3d36dca5cd82bb6",
+  "official_first_integration/README.md": "374ec581835f9160321a8c35135842ea198dc910656464d58a75c9ec25c54977",
+  "official_first_integration/tests/test_localization_transport.py": "c55c9645de014d2128f1d313c5d0a1a90f7299b539a69c9fdfd9031a9c40c523",
+  "official_first_integration/tests/test_session.py": "bb4acc7c629e4375d94ad92e73564d7339c7abd9f4e7af962b41d765673ed900",
+  "scanplanner_integration/alignment.py": "3ba0d826c96f4f188255fb72e0f0ca4eb2526338e88239fe3a44bb57e8f0ce49",
+  "scanplanner_integration/localization_node.py": "678532bec60d8eba701c73c03f460a066e4709cb6e5281fe689d6f4c0016a27f",
+  "scanplanner_integration/tests/test_alignment.py": "9da78de8d4c64c0cb49fba80010231cee0e652e7c6a403711a4a240a115d92ac"
+}

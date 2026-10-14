@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-14",
+  "method": "Read-only NOS configuration/process inspection and offline AArch64 disassembly. No service calls, process changes, or motion commands.",
+  "facts": [
+    "NOS local_planner.sh enables pcl_pass_grid + localPlanner. Its alternative pcl_remove command is commented out and explicitly labelled passability input /impassable_area.",
+    "pcl_remove binary contains input /impassable_area and output /NAV_POINTS.",
+    "NOS passable_area is running. nav_params.yaml defines an 8x8 m, .05 m elevation region and separate traversability-cost parameters; cost step_free=.08, step_block=.35, step_weight=.4, slope_weight=.3, roughness_weight=.3.",
+    "Handler input /HANDLE_STEER callback reads x/y/yaw into ProcessVel; separate handler obstacle input is /cloud_nav and output /NAV_CMD.",
+    "Handler::SetOoaParamCallback 0x9bfb0 reads StairOA and stores desired state at object+0x55.",
+    "Handler::CheckStairOaEnabledState 0x9c140 compares desired/current flags, converts desired flag to StdSrvInt32.command 0/1 at 0x9c250-0x9c260, and calls client at 0x9c284. Client service name is /HEIGHT_MAP_STAIR_OA_ENABLE.",
+    "These functions establish a stair obstacle-avoidance switch, not a demonstrated gait switch or stair-climbing controller."
+  ],
+  "limits": [
+    "Did not recover /HEIGHT_MAP_STAIR_OA_ENABLE server implementation. Enabled/disabled effect on stair classification and its deployment host remain unverified.",
+    "Traversal cost thresholds are software configuration, not guaranteed robot physical stair-height limits.",
+    "Did not establish auto stair detection -> gait switching -> foothold control or autonomous stair execution.",
+    "Copied default native integration includes pcl_pass_grid and localPlanner only; it does not add passable_area/pcl_remove/handler stair service."
+  ],
+  "sha256": {
+    "opt/robot/share/handler/bin/handler": "f6310a90732a34f54ace7e211a5deac8dc170481a494a8fc2605b8439454f21d",
+    "opt/robot/share/planner/bin/pcl_remove": "425099244155496212cd7178630afcffe0921003d50b58bfc8e607c417a627f1",
+    "passable_area": "d63d99f725fa575d74fdb71d17d296231b09e1b0280a1f8930c43149aedd31f6"
+  },
+  "superseded_by": "../source_20261014/aos/manifest.json",
+  "update_20261014": "AOS height_map_nav server and basic_server saved-task gait/parameter chain recovered. Earlier missing-server limitation is superseded; complete height-map preprocessing and cross-map task execution remain incomplete."
+}

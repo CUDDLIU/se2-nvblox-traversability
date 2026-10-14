@@ -1,0 +1,9 @@
+{
+  "frames": 10,
+  "missing_pose_pair_ignored": true,
+  "gravity_matches": true,
+  "terrain": 2,
+  "stair_oa_service": true,
+  "wall_cells_when_oa_enabled": 36,
+  "motion_publishers": 0
+}

@@ -1,0 +1,88 @@
+hz_threshold: 0.7
+steer_hz: 10
+odom_hz: 10
+imu_hz: 10
+cloud_hz: 10
+
+avoid_thresh: 0.3
+
+odom_buffer_length: 1
+
+robot_front_length: 0.4
+robot_back_length: 0.4
+robot_width: 0.4
+predict_dt: 0.15
+predict_steps: 6
+
+out_minx: -3.0
+out_maxx: 3.0
+out_miny: -3.0
+out_maxy: 3.0
+out_minz: -0.6
+out_maxz: 0.3
+cloud_voxel_size_xy: 0.1
+cloud_voxel_size_z: 3.0
+debug_cloud: true
+
+is_transform_cloud: false
+
+cloud_pass_dis: 1.5
+
+slow_dis1_m: 1.0
+slow_vel1_x: 0.6
+slow_vel1_y: 0.4
+slow_vel1_yaw: 0.6
+
+slow_dis2_m: 0.25
+slow_vel2_x: 0.4
+slow_vel2_y: 0.2
+slow_vel2_yaw: 0.4
+
+maxSpeedX: 2.0
+minSpeedX: -2.0
+
+maxSpeedY: 1.0
+minSpeedY: -1.0
+
+maxTheta: 2.0
+minTheta: -2.0
+
+vx_space: 0.8
+vy_space: 0.6
+vyaw_space: 0.8
+
+vx_sample: 0.2
+vy_sample: 0.2
+vyaw_sample: 0.2
+
+use_simpson_rule: false
+
+#weight_x: 0.2
+#weight_y: 0.2
+#weight_yaw: 0.02
+#weight_dis: 0.02
+
+#weight_x: 1.0
+#weight_y: 0.2
+#weight_yaw: 0.2
+#weight_dis: 0.01
+
+weight_x: 0.2
+weight_y: 0.02
+weight_yaw: 0.02
+weight_dis: 0.02
+
+output_buffer_length: 1
+
+log_in: false
+log_cloud: false
+log_dwa: false
+log_cost: false
+log_out: false
+log_speed_bound: false
+log_time: false
+log_csv: false
+log_stdstatus: false
+log_transform: false
+
+default_open: false

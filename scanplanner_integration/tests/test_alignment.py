@@ -4,9 +4,30 @@ import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from alignment import MapAligner,rotation,deskew
+from alignment import MapAligner,rotation,deskew,correction_at,blend_rigid_at,voxel
 
 class AlignmentTests(unittest.TestCase):
+    def test_fast_voxel_preserves_original_representatives_and_order(self):
+        rng=np.random.default_rng(71);p=rng.uniform(-20,20,(30000,3))
+        p=np.vstack([p,p[:2000],np.round(p[:2000]/.12)*.12])
+        _,ids=np.unique(np.floor(p/.12).astype(np.int64),axis=0,return_index=True)
+        np.testing.assert_array_equal(voxel(p),p[ids])
+        self.assertEqual(voxel(np.empty((0,3))).shape,(0,3))
+    def test_tracking_correction_is_invariant_to_remote_odometry_origin(self):
+        rng=np.random.default_rng(198)
+        target=rng.uniform(-3,3,(6500,3));target[:2200,2]=-.57;target[2200:4400,0]=2.8;target[4400:,1]=-2.7
+        a=MapAligner.__new__(MapAligner);a.target=target;a.tree=cKDTree(target)
+        a.normals=np.zeros_like(target);a.normals[:2200,2]=1;a.normals[2200:4400,0]=1;a.normals[4400:,1]=1
+        old_r=Rotation.from_euler('xyz',[.015,-.012,.008]).as_matrix();offset=np.array([1.,-20.,3.5])
+        near_t,near_r,q=a.fit_rigid(target,np.zeros(3),(np.zeros(3),old_r))
+        far_t,far_r,far_q=a.fit_rigid(target+offset,offset,(-old_r@offset,old_r))
+        self.assertGreater(np.linalg.norm(far_t+old_r@offset),.015)
+        np.testing.assert_allclose(far_r,near_r,atol=1e-9)
+        np.testing.assert_allclose(far_t+far_r@offset,near_t,atol=1e-9)
+        self.assertAlmostEqual(q['correction_at_body_m'],far_q['correction_at_body_m'],places=9)
+        # An actual 30 cm robot-position correction still fails.
+        with self.assertRaises(ValueError):a.fit_rigid(target+offset,offset,(-old_r@offset+np.array([.3,0,0]),old_r))
+
     def test_deskew_measured_motion(self):
         poses=np.array([[10.,0,0,0,0,0,0,1],[11.,1,0,0,0,0,0,1]])
         ts=np.linspace(10,11,600);raw=np.column_stack([3-(ts-10),np.linspace(-2,2,600),np.zeros(600),ts])

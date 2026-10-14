@@ -1,0 +1,10 @@
+{
+  "source_files_verified": 51,
+  "jetson_source_tests": 48,
+  "final_stair_input_and_obstacle_tests": 5,
+  "jetson_up_closed_loop": true,
+  "jetson_down_closed_loop": true,
+  "backup": "official_first_integration/backups/stair_execution_1791959831551661009",
+  "physical_stair_tested": false,
+  "ready_for_operator_test": true
+}

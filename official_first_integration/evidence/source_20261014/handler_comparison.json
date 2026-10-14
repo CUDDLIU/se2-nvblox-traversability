@@ -1,0 +1,14 @@
+{
+  "selection_cases": 24,
+  "accepted_candidates": 6717,
+  "reference_sha256": "f6310a90732a34f54ace7e211a5deac8dc170481a494a8fc2605b8439454f21d",
+  "boundary_tables": 20,
+  "kinematic_steps": 600,
+  "path_judgements": 300,
+  "velocity_limit_cases": 55,
+  "max_state_error": 0.0,
+  "max_clearance_error": 0.0,
+  "max_limit_error": 0.0,
+  "passed": true,
+  "scope": "boundary, Euler/Simpson kinematics, judgePath, InitParams coefficients and ChangeVelBoundary; full CalAvoidance with cloud transform disabled; not timer/transport"
+}

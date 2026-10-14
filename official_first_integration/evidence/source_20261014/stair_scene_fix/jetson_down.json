@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "scope": "Replay the failed real ASA route and mesh through the source ROS adapter.\n\nOdometry follows the recorded route (open loop); clouds sample the actual mesh,\nwithout sensor occlusion or contact physics. Gait ACK is simulated. This proves\nmode/perception handoff, not physical climb completion. No actuator is opened.\n",
+  "direction": "down",
+  "modes": [
+    {
+      "start_m": 0.0,
+      "end_m": 0.2368351572739218,
+      "terrain": "flat",
+      "Gait": 12290,
+      "NavMode": 1,
+      "ObsMode": 0,
+      "Speed": 0,
+      "Manner": 0
+    },
+    {
+      "start_m": 0.2368351572739218,
+      "end_m": 8.196507128994881,
+      "terrain": "stair_down",
+      "Gait": 12291,
+      "NavMode": 1,
+      "ObsMode": 0,
+      "Speed": 0,
+      "Manner": 0
+    },
+    {
+      "start_m": 8.196507128994881,
+      "end_m": 11.40518673001314,
+      "terrain": "flat",
+      "Gait": 12290,
+      "NavMode": 1,
+      "ObsMode": 0,
+      "Speed": 0,
+      "Manner": 0
+    }
+  ],
+  "sequence": [
+    "flat",
+    "stair_down",
+    "flat"
+  ],
+  "annotation": {
+    "method": "mesh_treads_and_sustained_grade",
+    "mesh_coverage": 0.9895470383275261,
+    "tread_flights": 0,
+    "profile_flights": 2
+  },
+  "height_frames": 116,
+  "first_stair_progress": 0.2561729898015621,
+  "gaits": [
+    12291,
+    12290
+  ],
+  "planner_states": [
+    "idle",
+    "no_feasible_path",
+    "tracking"
+  ],
+  "max_height_ms": 69.32716599840205
+}

@@ -1,5 +1,6 @@
 /vendor/
 /evidence/*disassembly.txt
+/evidence/**/*.asm
 /maps/
 
 /evidence/native_capture*.txt

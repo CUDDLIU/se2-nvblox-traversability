@@ -57,7 +57,7 @@ Visualization Manager:
     Cell Size: 1
     Plane Cell Count: 40
   - Class: rviz_default_plugins/Path
-    Name: FIRST 局部轨迹
+    Name: 官方局部轨迹
     Enabled: true
     Topic:
       Value: /first/local_path
@@ -68,17 +68,18 @@ Visualization Manager:
     Line Style: Lines
     Line Width: 0.04
   - Class: rviz_default_plugins/PointCloud2
-    Name: FIRST 局部规划障碍点云
+    Name: 官方局部避障点云 · 8×8米单帧
     Enabled: true
     Topic:
-      Value: /first/planning_obstacles
+      Value: /first/occupancy
       Depth: 1
       Reliability Policy: Best Effort
       Durability Policy: Volatile
-    Size (Pixels): 3
+    Size (Pixels): 2
     Style: Points
-    Color Transformer: FlatColor
-    Color: 255; 100; 70
+    Color Transformer: AxisColor
+    Axis: Z
+    Use Fixed Frame: true
     Alpha: 1
     Decay Time: 0
   - Class: rviz_default_plugins/RobotModel
@@ -107,7 +108,7 @@ Visualization Manager:
     Current:
       Class: rviz_default_plugins/Orbit
       Near Clip Distance: 0.01
-      Distance: 36
+      Distance: 24
       Pitch: 0.6
       Yaw: 0.2
       Target Frame: <Fixed Frame>

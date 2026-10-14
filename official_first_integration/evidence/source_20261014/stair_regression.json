@@ -1,0 +1,14 @@
+{
+  "source_tests": 48,
+  "startup_tests": 4,
+  "sender_tests": 13,
+  "session_tests": 2,
+  "asa_tests": 4,
+  "passed": true,
+  "physical_stair_tested": false,
+  "jetson_source_tests": 48,
+  "saved_auto_regression": true,
+  "saved_direct_regression": true,
+  "atomic_route_regression": true,
+  "jetson_backup": "official_first_integration/backups/stair_execution_1791959831551661009"
+}

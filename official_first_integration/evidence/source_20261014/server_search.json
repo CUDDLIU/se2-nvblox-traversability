@@ -1,0 +1,14 @@
+{
+  "roots": [
+    "/opt/robot",
+    "/opt/ros/foxy/lib",
+    "/usr/local/bin",
+    "/usr/local/lib"
+  ],
+  "needle": "HEIGHT_MAP_STAIR_OA_ENABLE",
+  "elf_files_checked": 785,
+  "matches": [
+    "/opt/robot/share/handler/bin/handler"
+  ],
+  "limits": "Readable ELF files only; this does not prove the service cannot exist on another computer or in a program that constructs its name dynamically."
+}

@@ -1,0 +1,211 @@
+{
+  "ConinuesWarn": {
+    "locationLossTime": 30,
+    "obstructionTime": 30
+  },
+  "ServerTimeout": {
+    "setParamTimeout": 5,
+    "cancelGoalTimeout": 5,
+    "sendGoalTimeout": 5,
+    "mapSwitchTimeout": 10,
+    "retryTimes": 3
+  },
+  "Loop": {
+    "LoopCnt": 5,
+    "waitTime": 1,
+    "LoopEnable": false
+  },
+  "Go2Piont": {
+    "distance": 0.5,
+    "time": 30,
+    "enable": false
+  },
+  "Charge": {
+    "waitTime": 5,
+    "waitEnable": false
+  },
+  "DIRECTLINE": {
+    "ORIENTEER": {
+      "HIGH_SPEED": {
+        "dl_line_yaw_min": 0.25,
+        "dl_min_x": 0.25,
+        "stop_distance": 1.5,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 1.3,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 2.0
+      },
+      "NORMAL_SPEED": {
+        "dl_line_yaw_min": 0.25,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.85,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 1.5,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.2
+      },
+      "LOW_SPEED": {
+        "dl_line_yaw_min": 0.25,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.6,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 0.5
+      }
+    },
+    "STAIR": {
+      "HIGH_SPEED": {
+        "dl_line_yaw_min": 0.25,
+        "dl_min_x": 0.3,
+        "stop_distance": 1.2,
+        "dl_min_y": 0.4,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.2
+      },
+      "NORMAL_SPEED": {
+        "dl_line_yaw_min": 0.25,
+        "dl_min_x": 0.25,
+        "stop_distance": 1.2,
+        "dl_min_y": 0.4,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.0
+      },
+      "LOW_SPEED": {
+        "dl_line_yaw_min": 0.25,
+        "dl_min_x": 0.25,
+        "stop_distance": 1.2,
+        "dl_min_y": 0.45,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 0.8
+      }
+    },
+    "FLAT": {
+      "HIGH_SPEED": {
+        "dl_line_yaw_min": 0.2,
+        "dl_min_x": 0.25,
+        "stop_distance": 2.5,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 1.3,
+        "dl_min_yaw": 0.6,
+        "maxSpeedX": 2.0
+      },
+      "NORMAL_SPEED": {
+        "dl_line_yaw_min": 0.15,
+        "dl_min_x": 0.25,
+        "stop_distance": 1.2,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.6,
+        "maxSpeedX": 1.2
+      },
+      "LOW_SPEED": {
+        "dl_line_yaw_min": 0.25,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.8,
+        "dl_min_y": 0.32,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.6,
+        "maxSpeedX": 0.5
+      }
+    }
+  },
+  "AUTO": {
+    "ORIENTEER": {
+      "HIGH_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 1.3,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 1.5,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.5
+      },
+      "NORMAL_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.6,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.0
+      },
+      "LOW_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.6,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 0.5
+      }
+    },
+    "STAIR": {
+      "HIGH_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 1.3,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 1.5,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.5
+      },
+      "NORMAL_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.6,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.0
+      },
+      "LOW_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.6,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 0.5
+      }
+    },
+    "FLAT": {
+      "HIGH_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 1.3,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 1.5,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.5
+      },
+      "NORMAL_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.85,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 1.0
+      },
+      "LOW_SPEED": {
+        "dl_line_yaw_min": 0.35,
+        "dl_min_x": 0.25,
+        "stop_distance": 0.6,
+        "dl_min_y": 0.3,
+        "barking_deceleration": 2.0,
+        "dl_min_yaw": 0.7,
+        "maxSpeedX": 0.5
+      }
+    }
+  },
+  "COMMON": {
+    "xy_tolerance": 0.1,
+    "yaw_tolerance": 0.1,
+    "maxTheta": 1.0,
+    "maxSpeedY": 1.0
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "scene": "retained_obstacle",
+  "commands": 212,
+  "max_control_period_ms": 33.59564399943338,
+  "mean_control_period_ms": 33.332928614584034,
+  "max_planning_ms": 6.3335069971799385,
+  "states": [
+    "blocked",
+    "idle",
+    "posture_settling",
+    "rear_blocked",
+    "tracking",
+    "waiting_gait",
+    "waiting_inputs"
+  ]
+}

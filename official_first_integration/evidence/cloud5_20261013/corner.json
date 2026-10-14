@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "scene": "corner_deadband",
+  "commands": 574,
+  "max_control_period_ms": 34.62714299894287,
+  "mean_control_period_ms": 33.33298765704021,
+  "max_planning_ms": 5.720490000385325,
+  "states": [
+    "arrived",
+    "idle",
+    "tracking"
+  ]
+}

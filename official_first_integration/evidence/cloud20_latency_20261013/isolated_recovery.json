@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "scene": "reverse_recovery",
+  "commands": 230,
+  "max_control_period_ms": 33.81402200102457,
+  "mean_control_period_ms": 33.333063723815336,
+  "max_planning_ms": 8.647457001643488,
+  "states": [
+    "blocked",
+    "idle",
+    "recovery_recheck",
+    "tracking",
+    "waiting_inputs"
+  ]
+}

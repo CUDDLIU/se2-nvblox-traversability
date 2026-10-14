@@ -33,6 +33,15 @@ class StartupHealth(unittest.TestCase):
         self.assertTrue(state['imu']['fresh'])
         self.assertFalse(state['odom']['fresh'])
 
+    def test_registered_cloud_requires_matching_lidar_update_not_imu_odom(self):
+        h=InputHealth()
+        h.receive('registered',10.,10.1);h.receive('odom',10.,10.1)
+        h.receive('lidar_odom',10.01,10.1)
+        self.assertFalse(h.registered_pair(10.1))
+        h.receive('lidar_odom',10.,10.1)  # Out of order is ignored.
+        self.assertFalse(h.registered_pair(10.1))
+        h.receive('registered',10.1,10.2);h.receive('lidar_odom',10.1,10.2)
+        self.assertTrue(h.registered_pair(10.2));self.assertFalse(h.registered_pair(10.7))
 
 if __name__ == '__main__':
     unittest.main()

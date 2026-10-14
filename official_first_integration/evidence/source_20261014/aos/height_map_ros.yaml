@@ -1,0 +1,88 @@
+#height_map_nav参数
+
+default_enable: true
+
+imu_input_topic: "/imu/data"
+pcl_input_topic: "/royale_cam_royale_camera/point_cloud_0"
+odom_input_topic: "/odom"
+
+imu_buffer_length: 200
+
+robot_height: 0.55
+robot_height_margin: 0.1
+
+out_max_x: 4.0
+out_min_x: -4.0
+out_max_y: 4.0
+out_min_y: -4.0
+out_max_z: 0.5
+out_min_z: -1.5
+
+in_max_x: 0.4
+in_min_x: -0.4
+in_max_y: 0.2
+in_min_y: -0.2
+in_max_z: 0.4
+in_min_z: -0.5
+
+cloud_now_voxel_leaf_size_xy: 0.05
+cloud_now_voxel_leaf_size_z: 0.05
+
+accumulation_enabled: false
+ray_casting_enabled: true
+parallel_ray_casting_enabled: true
+ray_tracing_voxel_size: 0.1
+
+cloud_local_voxel_leaf_size_xy: 0.05
+cloud_local_voxel_leaf_size_z: 0.05
+
+filter_to_map_resolution: false
+
+interpolation: false
+interpolation_2d_thresh: 0.4
+interpolation_knear_dis: 0.06
+interpolation_knear: 2
+
+map_resolution: 0.1
+x_grid_num: 81
+y_grid_num: 81
+max_points_per_cell: 30
+map_x_min: -4.0
+map_y_min: -4.0
+
+obs_min_z: -0.4
+obs_max_z: 0.0
+point_range_flat: 2
+point_range_stair: 2
+base_gravity_frame: "base_link"
+remove_cloud_nav_enabled: true
+remove_cloud_obs_enabled: true
+height_range_single_battery: 0.08
+height_range_flat: 0.25
+height_range_stair: 0.25
+
+use_filter: true
+change_height: false
+
+cov_kernel_size: 3
+cov_thresh: 0.03
+sobel_thresh: 0.3
+laplacian_thresh: 0.3
+is_open_process_image: true
+
+depth_image_inflation_times: 1.0
+included_depth: 4.0
+max_depth: 4.0
+cols: 90
+rows: 43
+yaw_step: 4
+pitch_step: 4
+
+debug_cloud_nav: false
+debug_publish_clouds: false
+
+log_sync: false
+log_time: false
+log_interpolation: false
+log_raytracing: false
+log_stdstatus: false

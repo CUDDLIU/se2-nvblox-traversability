@@ -1,0 +1,34 @@
+{
+  "source": "NOS user@10.21.31.106 /opt/robot/share/planner",
+  "verified_date": "2026-10-13",
+  "method": "Read-only SSH capture and AArch64 objdump; no service changes or binary execution.",
+  "files": {
+    "bin/localPlanner": {
+      "bytes": 1489728,
+      "sha256": "811d309e1a45d2f2a91d3cf423b809e1b4c1959f53c73d71f8e2dcee490dd354"
+    },
+    "bin/pcl_pass_grid": {
+      "bytes": 2036144,
+      "sha256": "a51736b0b86bb6a202a915f6bb7c22b9ddf50162efc7bab9823f163ddfee68a9"
+    },
+    "config/localplanner.yaml": {
+      "bytes": 4407,
+      "sha256": "8f2860cb6825817b01c68838967c0ab4d8bd21628480a95b4ce86e23db9c1e48"
+    },
+    "config/pcl_pass_grid.yaml": {
+      "bytes": 1096,
+      "sha256": "060b800d56df9aefb876f9d46d0e9679b8a2a13203817db1180170a000201db8"
+    },
+    "scripts/local_planner.sh": {
+      "bytes": 456,
+      "sha256": "6174fd0f1d90c130152069451d02544cfbd2008d251aa0bd525d016dc9c067aa"
+    }
+  },
+  "raw_archive": "/tmp/nos_planner_audit_20261013.tgz",
+  "localPlanner_file_defaults": {
+    "config_address": "0x102010",
+    "only_rotate_yaw_at_offset_184": 0.35,
+    "adjust_yaw_min_at_offset_192_degrees": 5.0,
+    "note": "Static ELF defaults; inspected YAML loader and paramHandler do not write these two fields. Not a live-memory read."
+  }
+}

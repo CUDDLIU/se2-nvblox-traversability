@@ -1,0 +1,23 @@
+{
+  "case": "saved_goal",
+  "passed": true,
+  "scope": "isolated localhost ROS 2 with simulated telemetry; no actuator",
+  "body": null,
+  "holds": {
+    "idle": 14,
+    "waiting_task_gait": 12,
+    "stale_robot_state": 13,
+    "stale_native_command": 2,
+    "none": 23,
+    "arrived": 1,
+    "waiting_goal_ack": 2
+  },
+  "states": {
+    "idle": 40,
+    "line_approaching": 6,
+    "line_goal_adjustment": 9,
+    "arrived": 1,
+    "tracking": 11
+  },
+  "command_count": 243
+}

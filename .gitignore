@@ -26,6 +26,7 @@ output/
 *.mcap
 *.pcd
 *.npz
+!global_planner/fixtures/stair_scene_20261014/mesh_corridors.npz
 *.npy
 *.log
 .env

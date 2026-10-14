@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scene": "corner",
+  "commands": 572,
+  "max_control_period_ms": 41.63704400343704,
+  "mean_control_period_ms": 33.333007389494696,
+  "max_planning_ms": 16.776787997514475,
+  "states": [
+    "arrived",
+    "idle",
+    "tracking",
+    "waiting_inputs"
+  ]
+}

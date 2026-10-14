@@ -1,0 +1,11 @@
+{
+  "reference_sha256": "1376c2a75fc3a9f30089df19f3d773be3c019fe53354c11aa89697f6f821aae9",
+  "parallel_cloud_pairs": 100,
+  "serial_cloud_pairs": 100,
+  "rays": 20000,
+  "octree_queries": 18121,
+  "erased_points": 7113,
+  "imu_cases": 60,
+  "imu_max_abs_error": 1.1920928955078125e-07,
+  "scope": "original ray decisions and IMU interpolation; PCL queries delegated to installed library; full sync callback not instruction-differential verified"
+}

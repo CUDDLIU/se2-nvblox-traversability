@@ -1,0 +1,23 @@
+{
+  "old": {
+    "frames": 139,
+    "mean_points": 867.375,
+    "mean_near2m": 0.0,
+    "min_range_m": 2.0000457763671875
+  },
+  "dense": {
+    "frames": 77,
+    "mean_points": 35076.583333333336,
+    "mean_near2m": 12089.333333333334,
+    "min_range_m": 0.6622210144996643
+  },
+  "height_frames": 23,
+  "height_ms_p50": 40.98463299987998,
+  "height_ms_p95": 55.90584349974961,
+  "height_ms_max": 190.48913400001766,
+  "accumulated_points_max": 11887,
+  "obstacle_cells_max": 113,
+  "robot_location": "user confirmed returned to start",
+  "control_publishers": 0,
+  "scope": "read-only LIO output and captured-input continuous height-map replay; no physical stair execution"
+}

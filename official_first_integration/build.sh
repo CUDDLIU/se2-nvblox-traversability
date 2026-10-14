@@ -7,3 +7,5 @@ set -u
 cmake -S "$HERE" -B "$HERE/build" -DCMAKE_BUILD_TYPE=Release -DBUILD_ROS=ON
 cmake --build "$HERE/build" -j2
 ctest --test-dir "$HERE/build" --output-on-failure
+
+bash "$HERE/source/build.sh"

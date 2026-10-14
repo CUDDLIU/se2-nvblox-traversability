@@ -13,6 +13,7 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from planner import Planner, NoPath
 from geometry import read_mesh
+from navigation_modes import envelope
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -21,7 +22,7 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, TransformStamped
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 from nav_msgs.msg import Path as RosPath, Odometry
-from std_msgs.msg import ColorRGBA, String
+from std_msgs.msg import ColorRGBA, String, Empty
 from std_srvs.srv import Trigger
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -61,6 +62,7 @@ class GlobalPlannerNode(Node):
         self.marker_pub = self.create_publisher(MarkerArray, '/se2_global/path_markers', retained)
         self.pose_pub = self.create_publisher(MarkerArray, '/se2_global/query_markers', retained)
         self.path_pub = self.create_publisher(RosPath, '/se2_global/path', retained)
+        self.navigation_pub = self.create_publisher(String, '/se2_global/navigation_route', retained)
         self.status_pub = self.create_publisher(String, '/se2_global/status', retained)
         if robot_start:
             from rclpy.qos import qos_profile_sensor_data
@@ -69,6 +71,7 @@ class GlobalPlannerNode(Node):
         self.create_subscription(PointStamped, '/clicked_point', self.clicked, 10)
         self.create_subscription(PointStamped, '/se2_global/start', self.start_clicked, 10)
         self.create_subscription(PoseStamped, '/se2_global/goal_pose', self.pose_goal, 10)
+        self.create_subscription(Empty, '/se2_global/cancel', self.cancel_query, 10)
         self.create_service(Trigger, '/se2_global/pick_start', self.pick_start_service)
         self.create_service(Trigger, '/se2_global/reset_start', self.reset_start_service)
         # Query completion must be serviced while a bag's /clock is paused.
@@ -101,6 +104,9 @@ class GlobalPlannerNode(Node):
         tmp = target / 'status.tmp'
         tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=2))
         tmp.replace(target / 'status.json')
+        # Preserve failed goals and measured starts across subsequent clicks.
+        with (target / 'status.jsonl').open('a') as log:
+            log.write(json.dumps(dict(time_ns=time.time_ns(),**doc),ensure_ascii=False)+'\n')
 
     def publish_map(self):
         blocks, _ = read_mesh(self.directory / self.planner.document['source_mesh'])
@@ -159,6 +165,12 @@ class GlobalPlannerNode(Node):
         self.marker_pub.publish(MarkerArray(markers=[m]))
         path=RosPath();path.header.frame_id=self.frame;path.header.stamp=self.get_clock().now().to_msg()
         self.path_pub.publish(path)
+        self.navigation_pub.publish(String(data=json.dumps(envelope([], [],
+            (path.header.stamp.sec, path.header.stamp.nanosec), self.frame))))
+
+    def cancel_query(self,msg):
+        self.generation+=1;self.pending=None;self.clear_path()
+        self.status('cancelled','导航目标已取消。')
 
     def valid_frame(self,msg):
         if msg.header.frame_id != self.frame:
@@ -264,7 +276,7 @@ class GlobalPlannerNode(Node):
             self.future_generation=generation
             self.future_started=time.monotonic();self.future_goal=goal
             self.future=self.pool.submit(self.planner.query,start,goal,yaw,90.,
-                lambda generation=generation: self.generation != generation)
+                lambda generation=generation: self.generation != generation,snap_start=self.robot_start)
 
     def publish_path(self,result):
         poses=np.asarray(result['poses'])
@@ -274,6 +286,8 @@ class GlobalPlannerNode(Node):
             p.pose.orientation.z=math.sin(row[3]/2);p.pose.orientation.w=math.cos(row[3]/2)
             path.poses.append(p)
         self.path_pub.publish(path)
+        self.navigation_pub.publish(String(data=json.dumps(envelope(result['poses'], result['navigation_modes'],
+            (path.header.stamp.sec, path.header.stamp.nanosec), self.frame), allow_nan=False)))
         line=self.marker(0,Marker.LINE_STRIP,'route');line.scale.x=.065
         line.color=ColorRGBA(r=1.,g=.95,b=.05,a=1.)
         line.points=[point(p[:3]+[0,0,.08]) for p in poses]

@@ -1,0 +1,14 @@
+{
+  "include/ros/ROSWrapper.h": {
+    "before": "aa57ca489083cd0b3018b3035930b4f7d2d881ae33ddb3409d41f55545944bbb",
+    "after": "fe185354a23ffc8cf789ea15301546b1112fade63629f517dfb3fd5a45f2030c"
+  },
+  "src/ros/ROSWrapper.cpp": {
+    "before": "a183b5fb0fae84cf900679260744a27fff4e321bad95cca079f977c581e55c5f",
+    "after": "2b78d643e31aa623d17a3cd7efcd87d90c717f14bb6006faf21ee289370d9617"
+  },
+  "src/lio/super_lio.cpp": {
+    "before": "7efe2651e126c7e008bea144e7b3eeacb090975d397b48cafe3fd8c0f96c1a7c",
+    "after": "df76ebb3def2f42a0f2d5f97849d76e1ff760d0617b69f39621337f43194a898"
+  }
+}

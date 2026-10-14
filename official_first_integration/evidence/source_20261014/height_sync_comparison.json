@@ -1,0 +1,8 @@
+{
+  "reference_sha256": "1376c2a75fc3a9f30089df19f3d773be3c019fe53354c11aa89697f6f821aae9",
+  "sync_frames": 32,
+  "configurations": 4,
+  "downstream_obstacle_masks_equal": 32,
+  "max_nearest_point_error_m": 1.896139826844557e-06,
+  "scope": "original syncCallback ordering/transforms; PCL/container I/O delegated; IMU/ray decisions independently differential-tested"
+}

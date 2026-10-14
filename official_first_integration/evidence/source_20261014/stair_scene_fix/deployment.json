@@ -1,0 +1,22 @@
+{
+  "deployed": true,
+  "verified_files": 9,
+  "backup": "official_first_integration/backups/stair_scene_1791964126693635259",
+  "old_session": "20261014_144859_1ea038c6",
+  "old_session_stopped": true,
+  "shutdown_errors": [],
+  "real_navigation_restarted": false,
+  "local_tests": 55,
+  "jetson_tests": 55,
+  "captured_map_up_down_replay": true,
+  "physical_climb_verified": false,
+  "failed_route_mode_interval_m": [
+    2.9086796010182576,
+    10.868351572739217
+  ],
+  "previous_stop_progress_m": 3.283390566658272,
+  "remaining_observations": [
+    "Original run also had processed-cloud latency beyond 0.35 s and localization age beyond 1.5 s. Freshness protections unchanged.",
+    "Captured route replay uses imposed odometry and simulated gait acknowledgement; it is not a dynamics or contact simulation."
+  ]
+}

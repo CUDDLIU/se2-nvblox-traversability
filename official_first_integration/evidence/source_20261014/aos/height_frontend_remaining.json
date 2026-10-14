@@ -1,0 +1,25 @@
+{
+  "status": "captured-config cloud frontend implemented and offline/isolated ROS tested; not inserted into NOS autonomous raw-cloud input",
+  "reference": "height_map_nav 1376c2a75fc3a9f30089df19f3d773be3c019fe53354c11aa89697f6f821aae9",
+  "evidence": {
+    "serial_ray": "0x8d5f8: origin=(0,0,0), shrink ray endpoint by .1 m; skip abs(y)>.2 and abs(x)<=.4; PCL OctreePointCloudSearch::getIntersectedVoxelIndices(...,4); pointwise strict abs XYZ bounds; preserve abs(x)<=.5 and side band abs(x)<=1,.4<=abs(y)<=.8",
+    "parallel_ray": "0x8db70/0x8d1f8: ray origin x=+/-.4 according to current point x sign, norm>.1; shrink .1; four intersected voxels; strict abs XYZ bounds; points within .3 planar distance of origin require additional angle<=.1 rad; final output excludes collected indices without serial near-body preservation",
+    "builder": "0x8f5d8: cyclic last-30 samples; cell maximum; cardinal nearest observed cells within 19 cells, Y range reduced to 2 when abs(cos(pitch))<.95; at least 2 directions use minimum if height span>.25 else lower median; otherwise -robot_height; raw missing=-10",
+    "filter": "0x8b548: Eigen/OpenCV transpose, medianBlur size3, transpose/copy back",
+    "cost_output": "0x8eda8 remove_cloud_nav=true emits one XYZ per flagged cell, Z=0; false emits original cell samples. Must not feed singleton map points through the NOS >=2-return occupancy grid without reconstructing the proper interface.",
+    "sync": "0x92a00: current 5cm voxel then inner crop; previous body cloud transformed by inv(T_current)*T_previous; ray clear uses uncapped current cloud; merge outer current; outer crop, 5cm voxel; bracketed IMU shortest-arc normalized slerp then yaw removal; no bracket retains body cloud",
+    "imu": "0x8e148: first consecutive timestamp bracket, normalize both quaternions, float slerp, erase history through lower bracket; 200-entry arrival buffer. 0x8ea40: height builder pitch uses latest IMU, independently of interpolated gravity orientation."
+  },
+  "remaining": [
+    "handler captured-config candidate selection and timer/PostProcess decisions are reconstructed and instruction-tested; full transport/rate callbacks, optional cloud timestamp transform and non-default output buffering remain unverified; cloud_nav is separate from autonomous NAV_POINTS",
+    "real staircase mesh classification and physical stair acceptance are not performed",
+    "disabled interpolation/image/depth debug options outside captured configuration are not reconstructed"
+  ],
+  "tests": {
+    "rays": "../height_frontend_comparison.json",
+    "sync": "../height_sync_comparison.json",
+    "ros": "../height_ros_acceptance.json",
+    "handler": "../handler_comparison.json",
+    "handler_state": "../handler_state_comparison.json"
+  }
+}

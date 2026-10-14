@@ -11,9 +11,26 @@ def rotation(yaw):
     return np.array([[c,-s,0.],[s,c,0.],[0.,0.,1.]])
 
 
+def correction_at(body,old_t,old_r,t,r):
+    """Physical correction at the robot, invariant to the odometry origin."""
+    return np.asarray(r)@body+t-(np.asarray(old_r)@body+old_t)
+
+
+def blend_rigid_at(body,old_t,old_r,t,r,fraction=.25):
+    delta=Rotation.from_matrix(r@old_r.T).as_rotvec()
+    blended=Rotation.from_rotvec(fraction*delta).as_matrix()@old_r
+    position=old_r@body+old_t+fraction*correction_at(body,old_t,old_r,t,r)
+    return position-blended@body,blended
+
+
 def voxel(points,resolution=.12):
-    _,indices=np.unique(np.floor(points/resolution).astype(np.int64),axis=0,return_index=True)
-    return points[indices]
+    # Stable lexicographic ordering preserves the exact first point selected by
+    # np.unique(axis=0), without the slower structured-array comparisons.
+    keys=np.floor(points/resolution).astype(np.int64)
+    if not len(keys):return points.copy()
+    order=np.lexsort(keys.T[::-1]);sorted_keys=keys[order]
+    first=np.r_[True,np.any(sorted_keys[1:]!=sorted_keys[:-1],axis=1)]
+    return points[order[first]]
 
 
 def deskew(raw,poses):
@@ -137,10 +154,10 @@ class MapAligner:
         else:
             old_t,old_y=previous
             t,y=(self.refine_planes(train,old_t,old_y) if hasattr(self,'normals') else self.refine(train,old_t,old_y,10))
-            if np.linalg.norm(t-old_t)>.15 or abs(math.atan2(math.sin(y-old_y),math.cos(y-old_y)))>.06:
+            if np.linalg.norm(correction_at(body,old_t,rotation(old_y),t,rotation(y)))>.15 or abs(math.atan2(math.sin(y-old_y),math.cos(y-old_y)))>.06:
                 raise ValueError('map correction jumped; stop and relocalize')
             # Apply small tracking corrections smoothly in the global frame.
-            t=.25*t+.75*old_t;y=old_y+.25*math.atan2(math.sin(y-old_y),math.cos(y-old_y))
+            t,r=blend_rigid_at(body,old_t,rotation(old_y),t,rotation(y));y=math.atan2(r[1,0],r[0,0])
             q=self.quality(test,body,t,y)
         if not self.acceptable(q):raise ValueError('map match failed quality check: '+str(q))
         if previous is None and (q['inliers_15cm']<.85 or q['structure_inliers_15cm']<.78):
@@ -214,10 +231,13 @@ class MapAligner:
         else:
             old_t,old_r=previous;t,r=self.refine_rigid_planes(train,old_t,old_r)
             delta=Rotation.from_matrix(r@old_r.T).as_rotvec()
-            if np.linalg.norm(t-old_t)>.15 or np.linalg.norm(delta)>.06:
-                raise ValueError('map correction jumped; stop and relocalize')
-            t=.25*t+.75*old_t;r=Rotation.from_rotvec(.25*delta).as_matrix()@old_r
+            shift=float(np.linalg.norm(correction_at(body,old_t,old_r,t,r)))
+            angle=float(np.linalg.norm(delta))
+            if shift>.15 or angle>.06:
+                raise ValueError(f'map correction jumped at robot: {shift:.3f} m, {angle:.4f} rad; stop and relocalize')
+            t,r=blend_rigid_at(body,old_t,old_r,t,r)
             q=self.quality(test,body,t,r)
+            q.update(correction_at_body_m=shift,correction_rotation_rad=angle)
         if not self.acceptable(q):raise ValueError('map match failed quality check: '+str(q))
         if previous is None and (q['inliers_15cm']<.85 or q['structure_inliers_15cm']<.78):
             raise ValueError('initial map match needs a more distinctive view: '+str(q))

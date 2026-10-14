@@ -1,0 +1,63 @@
+--- a/include/ros/ROSWrapper.h
++++ b/include/ros/ROSWrapper.h
+@@ -77,7 +77,7 @@
+   }
+ 
+   void pub_lidar_odom(const NavState&);
+-  void pub_cloud_body(const BASIC::CloudPtr& pc, double time);
++  void pub_cloud_body(const BASIC::CloudPtr& pc, double time, const BASIC::CloudPtr& dense = BASIC::CloudPtr());
+   void pub_cloud_world(const BASIC::CloudPtr& pc, double time);
+   void pub_cloud2planner(const BASIC::CloudPtr& pc, double time);
+   void pub_cloud_world_pose(const BASIC::CloudPtr& pc, 
+@@ -159,6 +159,7 @@
+   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;
+   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_lidar_odom_;
+   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_path_;
++  bool body_dense_ = false;
+   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_cloud_body_;
+   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_cloud_world_;
+   rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr pub_cloud_world_stamp_;
+--- a/src/ros/ROSWrapper.cpp
++++ b/src/ros/ROSWrapper.cpp
+@@ -266,6 +266,9 @@
+   node.declare_parameter<int>("lio.submap.submap_capacity", 0);
+   node.get_parameter("lio.submap.submap_capacity", g_submap_capacity);
+ 
++  // Dedicated perception output; LIO correspondence sampling stays unchanged.
++  node.declare_parameter<bool>("lio.output.body_dense", false);
++
+   // visual
+   node.declare_parameter<bool>("lio.output.robot", false);
+   node.get_parameter("lio.output.robot", g_2_robot);
+@@ -417,6 +420,7 @@
+ : rclcpp::Node("super_lio", options)
+ {
+   LoadParamFromRos(*this);
++  this->get_parameter("lio.output.body_dense", body_dense_);
+   trace_pub_ = this->create_publisher<std_msgs::msg::String>(
+     "/scan/diagnostics/event",
+     rclcpp::QoS(rclcpp::KeepLast(256)).best_effort().transient_local());
+@@ -870,10 +874,10 @@
+ }
+ 
+ 
+-void ROSWrapper::pub_cloud_body(const CloudPtr& pc, double time){
++void ROSWrapper::pub_cloud_body(const CloudPtr& pc, double time, const CloudPtr& dense){
+   if (!pub_cloud_body_) return;
+   sensor_msgs::msg::PointCloud2 cloud;
+-  pcl::toROSMsg(*pc, cloud);
++  pcl::toROSMsg(*(body_dense_ && dense ? dense : pc), cloud);
+   cloud.header.frame_id = g_body_frame;
+   cloud.header.stamp = toRosTime(time);
+   pub_cloud_body_->publish(cloud);
+--- a/src/lio/super_lio.cpp
++++ b/src/lio/super_lio.cpp
+@@ -619,7 +619,7 @@
+ void SuperLIO::Output(){
+   auto state = kf_->GetNavState();
+   data_wrapper_->pub_lidar_odom(state);
+-  data_wrapper_->pub_cloud_body(ds_undistort_, state.timestamp);
++  data_wrapper_->pub_cloud_body(ds_undistort_, state.timestamp, scan_undistort_full_);
+ 
+   Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
+   transformation.block<3, 3>(0, 0) = state.R.R_.cast<float>();

@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "direction": "down",
+  "steps": 12,
+  "sequence": [
+    "flat",
+    "stair_down",
+    "flat"
+  ],
+  "final": [
+    0.09034692826302934,
+    1.879836529042246e-16,
+    0.0
+  ],
+  "height_frames": 57,
+  "max_height_ms": 8.039135951548815,
+  "gait_requests": [
+    12291,
+    12290
+  ],
+  "udp_packets": 452,
+  "imu_loss_stop": true,
+  "cancel_stop": true,
+  "scope": "ASA mesh annotation -> source height perception -> source NOS planner -> gait confirmation -> real robot.py -> localhost UDP; synthetic geometry, no contact dynamics"
+}

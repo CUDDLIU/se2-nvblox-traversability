@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "scene": "heading",
+  "commands": 158,
+  "max_control_period_ms": 33.49493600035203,
+  "mean_control_period_ms": 33.33212696375942,
+  "max_planning_ms": 2.1474480017786846,
+  "states": [
+    "idle",
+    "tracking",
+    "waiting_inputs"
+  ]
+}

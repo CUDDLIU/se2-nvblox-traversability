@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <sstream>
 #include <optional>
+#include <thread>
 namespace first {
 struct Key {int x,y,z;bool operator==(const Key&b)const{return x==b.x&&y==b.y&&z==b.z;}};
 struct Hash {size_t operator()(const Key&k)const{return uint64_t(uint32_t(k.x))*73856093ULL^uint64_t(uint32_t(k.y))*19349663ULL^uint64_t(uint32_t(k.z))*83492791ULL;}};
@@ -12,13 +13,15 @@ struct Cell {int state=0;double seen=0;};
 class Evidence {
  public:
  static constexpr double resolution=.05;
- static constexpr int nx=200,ny=200,nz=120;
+ static constexpr int nx=100,ny=100,nz=120;
  std::vector<int8_t> values;Key origin{};bool initialized=false;
  std::vector<Point> occupied_points;
  size_t offset(Key k)const{return (size_t(k.x-origin.x)*ny+(k.y-origin.y))*nz+(k.z-origin.z);}
  bool inside(Key k)const{return initialized&&k.x>=origin.x&&k.x<origin.x+nx&&k.y>=origin.y&&k.y<origin.y+ny&&k.z>=origin.z&&k.z<origin.z+nz;}
  void move_window(Point body){
-  auto k=key(body);Key start{int(std::floor(k.x/10.))*10-nx/2,int(std::floor(k.y/10.))*10-ny/2,int(std::floor(k.z/10.))*10-nz/2};
+  // 10 cm XY rolls keep at least 2.4 m around the measured body, covering
+  // every currently allowed 1 s swept footprint (under 2.1 m radius).
+  auto k=key(body);Key start{int(std::floor(k.x/2.))*2-nx/2,int(std::floor(k.y/2.))*2-ny/2,int(std::floor(k.z/10.))*10-nz/2};
   if(initialized&&start==origin)return;
   std::vector<int8_t> next(nx*ny*nz,0);
   if(initialized){int z0=std::max(start.z,origin.z),z1=std::min(start.z+nz,origin.z+nz);
@@ -42,15 +45,19 @@ class Evidence {
  static std::vector<Key> ray(Point a,Point b){
   std::vector<Key> out;out.reserve(256);visit_ray(a,b,[&](Key k){out.push_back(k);});return out;
  }
- void clear_ray(Point a,Point b){
+ template<class Visit>void trace_ray(Point a,Point b,Visit visit,const Point* direction=nullptr){
   auto begin=key(a),end=key(b);
-  if(!inside(begin)||!inside(end)){
-   visit_ray(a,b,[&](Key k){if(inside(k)){auto&v=values[offset(k)];if(v!=2)v=-1;}});return;
+  if(!inside(begin)){
+   visit_ray(a,b,[&](Key k){if(inside(k))visit(offset(k));});return;
   }
-  // A segment with both endpoints in the rectangular grid stays inside it.
-  // Increment its linear address with the DDA axis instead of checking bounds
-  // and multiplying indices at every visited voxel. Tie ordering is unchanged.
-  double pos[]={a.x,a.y,a.z},delta[]={b.x-a.x,b.y-a.y,b.z-a.z};
+  // Start inside the grid and stop at its first exit. Keep the original
+  // endpoint/direction: rounding a clipped endpoint on a voxel face can
+  // shift a nearly horizontal ray into the adjacent height layer.
+  // Increment its linear address with the DDA axis; the bounds guard stops
+  // before visiting an outside cell. Tie ordering is unchanged.
+  // Keep the original direction after box clipping so coincident voxel-face
+  // crossings retain the same floating-point tie order as the measured ray.
+  double pos[]={a.x,a.y,a.z},delta[]={direction?direction->x:b.x-a.x,direction?direction->y:b.y-a.y,direction?direction->z:b.z-a.z};
   int idx[]={begin.x,begin.y,begin.z},finish[]={end.x,end.y,end.z},step[3];
   ptrdiff_t stride[3];double next[3],increment[3];
   for(int i=0;i<3;++i){step[i]=(delta[i]>0)-(delta[i]<0);stride[i]=step[i]*(i==0?ny*nz:i==1?nz:1);
@@ -58,26 +65,68 @@ class Evidence {
    next[i]=(step[i]&&idx[i]!=finish[i])?((idx[i]+(step[i]>0))*resolution-pos[i])/delta[i]:INFINITY;
   }
   ptrdiff_t address=offset(begin);
-  for(int n=0;n<1000;++n){auto&v=values[address];if(v!=2)v=-1;
+  for(int n=0;n<1000;++n){visit(size_t(address));
    if(idx[0]==finish[0]&&idx[1]==finish[1]&&idx[2]==finish[2])return;
    int axis=next[1]<next[0]?1:0;if(next[2]<next[axis])axis=2;
-   idx[axis]+=step[axis];address+=stride[axis];next[axis]=idx[axis]==finish[axis]?INFINITY:next[axis]+increment[axis];
+   idx[axis]+=step[axis];address+=stride[axis];
+   if(!inside({idx[0],idx[1],idx[2]}))return;
+   next[axis]=idx[axis]==finish[axis]?INFINITY:next[axis]+increment[axis];
   }
   throw std::runtime_error("ray traversal limit");
  }
- void ingest(const std::vector<std::pair<Point,Point>>&rays,Point body,double /*time*/){
-  move_window(body);std::vector<std::pair<Point,Point>> clipped;clipped.reserve(rays.size());
+ // Clip to the rolling 5 x 5 x 6 m box, not a radial range. Only the
+ // original measured endpoint may become occupied; clipped ends stay free.
+ bool clip_ray(Point& a,Point& b)const{
+  if(inside(key(a))&&inside(key(b)))return true;
+  double start[]={a.x,a.y,a.z},delta[]={b.x-a.x,b.y-a.y,b.z-a.z};
+  double lo[]={origin.x*resolution,origin.y*resolution,origin.z*resolution};
+  double hi[]={(origin.x+nx)*resolution,(origin.y+ny)*resolution,(origin.z+nz)*resolution};
+  double enter=0.,leave=1.;
+  for(int i=0;i<3;++i){
+   if(delta[i]==0.){if(start[i]<lo[i]||start[i]>=hi[i])return false;continue;}
+   double t0=(lo[i]-start[i])/delta[i],t1=(hi[i]-start[i])/delta[i];
+   if(t0>t1)std::swap(t0,t1);
+   enter=std::max(enter,t0);leave=std::min(leave,t1);if(enter>=leave)return false;
+  }
+  double first[3],last[3];
+  for(int i=0;i<3;++i){
+   first[i]=std::clamp(start[i]+enter*delta[i],lo[i]+1e-9,hi[i]-1e-9);
+   last[i]=std::clamp(start[i]+leave*delta[i],lo[i]+1e-9,hi[i]-1e-9);
+  }
+  if(enter>0.||!inside(key(a)))a={first[0],first[1],first[2]};
+  if(leave<1.||!inside(key(b)))b={last[0],last[1],last[2]};
+  return true;
+ }
+ void clear_ray(Point a,Point b,const Point* direction=nullptr){trace_ray(a,b,[&](size_t address){auto&v=values[address];if(v!=2)v=-1;},direction);}
+ void ingest(const std::vector<std::pair<Point,Point>>&rays,Point body,double /*time*/,bool parallel=true){
+  struct Segment {Point a,b,direction;};
+  move_window(body);std::vector<Segment> clipped;clipped.reserve(rays.size());
   std::vector<Key> hits;hits.reserve(rays.size());
   // Mark this scan's endpoints first. State 2 prevents any same-scan free ray
   // from clearing a hit, including a return from the other physical sensor.
   for(auto [a,b]:rays){double dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=std::sqrt(dx*dx+dy*dy+dz*dz);if(!std::isfinite(d)||d<.01)continue;
-   if(d<=4.){auto k=key(b);if(inside(k)){values[offset(k)]=2;hits.push_back(k);}}
-   else b={a.x+4*dx/d,a.y+4*dy/d,a.z+4*dz/d};
-   clipped.emplace_back(a,b);
+   if(!std::isfinite(a.x)||!std::isfinite(a.y)||!std::isfinite(a.z))continue;
+   auto k=key(b);if(inside(k)){values[offset(k)]=2;hits.push_back(k);}
+   if(inside(key(a))||clip_ray(a,b))clipped.push_back({a,b,{dx,dy,dz}});
   }
-  for(auto [a,b]:clipped)clear_ray(a,b);
+  if(parallel&&clipped.size()>=8000){
+   // Workers write private free-space bitsets. Merge only after all rays have
+   // finished, retaining the exact DDA cells and same-scan hit precedence.
+   constexpr size_t workers=3,words=(size_t(nx)*ny*nz+63)/64;
+   std::array<std::vector<uint64_t>,workers> free;
+   std::array<std::exception_ptr,workers> errors{};
+   for(auto&bits:free)bits.assign(words,0);
+   auto cast=[&](size_t worker){try{
+    for(size_t i=worker*clipped.size()/workers;i<(worker+1)*clipped.size()/workers;++i){auto [a,b,direction]=clipped[i];
+     trace_ray(a,b,[&](size_t address){free[worker][address/64]|=uint64_t(1)<<(address%64);},&direction);}
+   }catch(...){errors[worker]=std::current_exception();}};
+   std::thread a(cast,0),b(cast,1);cast(2);a.join();b.join();
+   for(auto e:errors)if(e)std::rethrow_exception(e);
+   for(size_t word=0;word<words;++word){uint64_t bits=free[0][word]|free[1][word]|free[2][word];
+    while(bits){size_t address=word*64+__builtin_ctzll(bits);if(values[address]!=2)values[address]=-1;bits&=bits-1;}}
+  }else for(auto [a,b,direction]:clipped)clear_ray(a,b,&direction);
   // Only prior occupied cells and this scan's endpoints can remain occupied.
-  // Preserve their exact values without scanning all 4.8 million grid cells.
+  // Preserve their exact values without scanning all 1.2 million grid cells.
   std::vector<Point> next;next.reserve(occupied_points.size()+hits.size());
   for(auto p:occupied_points){auto k=key(p);if(inside(k)&&values[offset(k)]>0){values[offset(k)]=1;next.push_back(p);}}
   for(auto k:hits){auto&v=values[offset(k)];if(v==2){v=1;next.push_back(center(k));}}

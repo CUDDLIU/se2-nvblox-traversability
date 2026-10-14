@@ -1,0 +1,26 @@
+{
+  "deployed_at": "20261014_191857",
+  "backup": "/home/nvidia/scanplanner_test/se2_nvblox_surface_shadow/official_first_integration/backups/stair_midflight_20261014_191857",
+  "stopped_sessions": [
+    22473
+  ],
+  "automatic_start": false,
+  "source_sha256": {
+    "global_planner/planner.py": "5f3fbc84a2a1acae04428b0045ac7c6d70ec11be9fd4bdefd69e0ae2eca31b3f",
+    "global_planner/clearance.py": "d4131b2f210ab0f659d19c9abde5f4d96d7b5b781ddb23d781a9c256ed257e2f",
+    "global_planner/test_clearance.py": "cf0adcc22b875e8e16422b27fc594343ab686a5317f77a8df155faf3cabdedaf",
+    "scanplanner_integration/start_lio.sh": "4002121df3aa0162b622160c65f4451c3904efebddeda7b6dfd2beb4297d4a65",
+    "scanplanner_integration/build_stair_lio.sh": "0b607e2cc739e83d1a6527852e6a38be3875a459718b9d89cebe034f0ab69503",
+    "scanplanner_integration/lio_dense_body.patch": "e617c969267088fd908bb56d6695a712748043b2803949bd298453b2ca0c9ffd",
+    "official_first_integration/source/stair_perception.py": "84a52c3497e6311a927167da8c63a265dd01e2d78914be79dd982d7fd44c6a83",
+    "official_first_integration/source/test_stair_density.py": "378b3e1cba15d373eecb20c50dabce7a09f75363a5e18f4f485b988b94a0f7d0",
+    "official_first_integration/source/acceptance_stair_execution.py": "aebe0cd35adb726c54e3069dba3268d076f3dcd914d445d9a150e4375c657a3e"
+  },
+  "lio_prefix": "/home/nvidia/scanplanner_test/se2_nvblox_surface_shadow/official_first_integration/build/stair_lio/install",
+  "lio_node_sha256": "0760fa704e6a59a1746cd8502fd6b3b38b9ab6c903be59721ae40c787c4d80b9",
+  "source_tests": 51,
+  "asa_tests": 23,
+  "simulated_stairs_up": true,
+  "simulated_stairs_down": true,
+  "lookahead_changed": false
+}

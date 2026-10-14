@@ -1,0 +1,27 @@
+{
+  "synthetic_motion_mps": 0.0,
+  "samples": 171,
+  "holds": {
+    "native_initializing": 51,
+    "none": 117,
+    "stale_cloud": 3
+  },
+  "occupied_sha256": "edba3b7825ef93f37c915df1449cdcce62e4b3a0d54c1447c21e61307d5a1f8b",
+  "occupied_points": 11694,
+  "occupied_max_abs_xy_m": [
+    3.9998281002044678,
+    3.8288166522979736
+  ],
+  "occupied_beyond_6m": 0,
+  "implementation": "nos_original_binary",
+  "perception_ms_p50_p90_p99": [
+    48.33984375,
+    51.531314849853516,
+    67.37625598907475
+  ],
+  "source_cloud_age_s_p50_p90_p99": [
+    0.17488408088684082,
+    0.26309895515441895,
+    0.35944378376007113
+  ]
+}

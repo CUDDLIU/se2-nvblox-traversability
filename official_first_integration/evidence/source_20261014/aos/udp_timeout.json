@@ -1,0 +1,18 @@
+{
+  "state": "passed",
+  "velocity_hz": 30.5162808430547,
+  "packets": 363,
+  "tested_velocity": [
+    2.0,
+    1.0,
+    1.0
+  ],
+  "mode_requests": 0,
+  "mode_restoration_tested": false,
+  "watchdog": "zero within 200 ms",
+  "destination": "127.0.0.1",
+  "gait_requests": 3,
+  "gait_timeout_tested": true,
+  "session_isolation_tested": true,
+  "shutdown_zero_packets": 3
+}

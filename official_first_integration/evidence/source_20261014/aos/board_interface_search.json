@@ -1,0 +1,12 @@
+{
+  "10.21.31.103": [
+    "/opt/robot/share/rl_deploy/bin/rl_deploy ['setgait']",
+    "/opt/robot/share/height_map_nav/bin/height_map_nav ['height_map_terrain_type_change']",
+    "/opt/robot/share/basic_server/bin/basic_server ['terrain_classifier', 'nav_gait', 'switchgait']"
+  ],
+  "10.21.31.106": [
+    "PYTHON_SCRIPT 1703 ['/usr/bin/multicast.py']",
+    "PYTHON_SCRIPT 2748 ['nav.launch.py']"
+  ],
+  "10.21.31.104": []
+}

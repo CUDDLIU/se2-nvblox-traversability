@@ -1,0 +1,33 @@
+{
+  "scope": "offline Jetson handler candidate selection, captured default config, no ROS or motion",
+  "results": {
+    "empty": {
+      "points": 0,
+      "frames": 12,
+      "p50_ms": 0.9567574998072814,
+      "p95_ms": 0.9851601507762098,
+      "max_ms": 0.9873350009002024,
+      "valid": true,
+      "velocity": [
+        1.0000000000000002,
+        5.551115123125783e-17,
+        0.6000000000000001
+      ],
+      "accepted": 4851
+    },
+    "wall_opening": {
+      "points": 60,
+      "frames": 12,
+      "p50_ms": 40.672061000805115,
+      "p95_ms": 40.84370274995308,
+      "max_ms": 40.85266000038246,
+      "valid": true,
+      "velocity": [
+        1.0000000000000002,
+        1.0,
+        1.8000000000000003
+      ],
+      "accepted": 2341
+    }
+  }
+}

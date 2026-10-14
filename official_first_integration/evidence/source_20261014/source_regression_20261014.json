@@ -1,0 +1,9 @@
+{
+  "local_tests": 43,
+  "jetson_tests": 43,
+  "passed": true,
+  "ros_height_frames": 10,
+  "navigation_started": false,
+  "backup": "/home/nvidia/scanplanner_test/se2_nvblox_surface_shadow/official_first_integration/backups/handler_1791957964729894812",
+  "scope": "source unit tests and isolated ROS height frontend; no physical motion acceptance"
+}

@@ -5,8 +5,9 @@
 int main(){
  first::Evidence grid;first::Point a{0,0,0},b{1,0,0};grid.ingest({{a,b}},a,1);REQUIRE(grid.state(b)==1);REQUIRE(grid.state({.5,0,0})==-1);REQUIRE(grid.state({0,.5,0})==0);
  grid.ingest({},a,2);REQUIRE(grid.state(b)==1); // Silence cannot clear a hit.
- grid.ingest({{a,{8,0,0}}},a,3);REQUIRE(grid.state(b)==-1);REQUIRE(grid.state({4,0,0})==-1);REQUIRE(grid.state({4.1,0,0})==0);
+ grid.ingest({{a,{8,0,0}}},a,3);REQUIRE(grid.state(b)==-1);REQUIRE(grid.state({2.49,0,0})==-1);REQUIRE(grid.state({2.5,0,0})==0);REQUIRE(grid.state({8,0,0})==0);REQUIRE(grid.state({8.1,0,0})==0);
  grid.ingest({{a,b},{a,{2,0,0}}},a,4);REQUIRE(grid.state(b)==1); // Simultaneous hit wins.
+ grid.ingest({{a,{8,0,0}}},a,5);REQUIRE(grid.state(b)==-1); // A previously free cell must clear again after becoming occupied.
  auto ray=first::Evidence::ray({-.01,-.01,-.01},{-.11,-.11,-.11});REQUIRE(ray.front()==first::Evidence::key({-.01,-.01,-.01}));REQUIRE(ray.back()==first::Evidence::key({-.11,-.11,-.11}));
  for(int i=0;i<360;++i){double a=i*first::pi/180;auto v=first::Evidence::ray({.32028,0,-.013},{3*std::cos(a),3*std::sin(a),-.57});REQUIRE(v.size()<300);}
  // Differential oracle: the previous dense rebuild, including window shifts,
@@ -15,22 +16,48 @@ int main(){
  for(int frame=0;frame<14;++frame){
   first::Point body{frame*.17-.9,frame*.07-.4,frame*.03-.2};
   std::vector<std::pair<first::Point,first::Point>> rays;
-  for(int i=0;i<90;++i){double a=(i*13+frame*7)*first::pi/180.;double range=(i%7==0)?6.:.3+(i%23)*.12;
+  for(int i=0;i<90;++i){double a=(i*13+frame*7)*first::pi/180.;double range=(i%7==0)?12.:.3+(i%23)*.12;
    rays.push_back({body,{body.x+range*std::cos(a),body.y+range*std::sin(a),body.z-.4+(i%5)*.2}});
    if(i%9==0)rays.push_back(rays.back());
   }
   fast.ingest(rays,body,frame);dense.move_window(body);
   std::vector<std::pair<first::Point,first::Point>> clipped;
-  for(auto [a,b]:rays){double dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=std::sqrt(dx*dx+dy*dy+dz*dz);
-   if(d<=4.){auto k=first::Evidence::key(b);if(dense.inside(k))dense.values[dense.offset(k)]=2;}
-   else b={a.x+4*dx/d,a.y+4*dy/d,a.z+4*dz/d};
-   clipped.push_back({a,b});
-  }
+  for(auto [a,b]:rays){auto k=first::Evidence::key(b);if(dense.inside(k))dense.values[dense.offset(k)]=2;clipped.push_back({a,b});}
   for(auto [a,b]:clipped)for(auto k:first::Evidence::ray(a,b))if(dense.inside(k)){auto&v=dense.values[dense.offset(k)];if(v!=2)v=-1;}
   size_t occupied=0;for(auto&v:dense.values)if(v>0){v=1;++occupied;}
   REQUIRE(fast.values==dense.values);REQUIRE(fast.occupied().size()==occupied);
  }
+ // Square corners beyond 2.5 m radial range remain observable. Far returns
+ // clear through the box without creating artificial occupied boundary cells.
+ first::Evidence box;box.ingest({{a,{2,2,0}},{a,{-2,-2,0}},{a,{100,0,0}},{a,{0,-100,0}}},a,0);
+ REQUIRE(first::Evidence::nx*first::Evidence::resolution==5.);
+ REQUIRE(box.state({2,2,0})==1&&box.state({-2,-2,0})==1);
+ REQUIRE(box.state({2.49,0,0})==-1&&box.state({0,-2.49,0})==-1);
+ REQUIRE(box.state({2.5,0,0})==0&&box.state({-2.51,0,0})==0);
+ box.ingest({{{-100,1,0},{100,1,0}},{{-100,3.5,0},{100,3.5,0}}},a,1);
+ REQUIRE(box.state({-2.49,1,0})==-1&&box.state({2.49,1,0})==-1);
+ REQUIRE(box.state({0,2.49,0})==0);
+ box.ingest({}, {1.5,0,0},2);
+ REQUIRE(box.state({2,2,0})==1&&box.state({-2,-2,0})==0);
+ for(double x:{-.51,-.01,.09,.49,1.59}){first::Evidence window;window.move_window({x,x,0});
+  REQUIRE(window.inside(first::Evidence::key({x+2.1,x+2.1,0})));REQUIRE(window.inside(first::Evidence::key({x-2.1,x-2.1,0})));}
+ first::Evidence tangent;tangent.ingest({{{-3.5,1.5,0},{-1.5,3.5,0}}},a,0);
+ REQUIRE(std::all_of(tangent.values.begin(),tangent.values.end(),[](int8_t v){return v==0;}));
  first::Terrain terrain;for(int x=-20;x<=20;++x)for(int y=-20;y<=20;++y){terrain.cells[{x,y,0}]={{0,0},{3,1}};}
+ // Parallel casting must preserve every occupied/free/unknown voxel, including
+ // clipping, diagonal ties, duplicate hits, old-hit clearing and window moves.
+ first::Evidence serial,parallel;
+ for(int frame=0;frame<6;++frame){
+  first::Point body{(frame/2)*.6-.8,(frame/2)*.4-.7,(frame/2)*.2};
+  std::vector<std::pair<first::Point,first::Point>> rays;
+  for(int i=0;i<10000;++i){double a=i*.013+frame*.12,d=.2+(i%151)*.04;
+   first::Point origin{body.x+(i%2?.32:-.32),body.y,body.z};
+   rays.push_back({origin,{origin.x+d*std::cos(a),origin.y+d*std::sin(a),origin.z+(i%71-35)*.11}});
+  }
+  serial.ingest(rays,body,frame,false);parallel.ingest(rays,body,frame,true);
+  REQUIRE(serial.origin==parallel.origin&&serial.values==parallel.values);
+  REQUIRE(serial.occupied().size()==parallel.occupied().size());
+ }
  REQUIRE(terrain.at(0,0,0)->component==0);REQUIRE(!terrain.at(0,0,3,0));REQUIRE(terrain.footprint({0,0,0,0},0));terrain.cells.erase({8,0,0});REQUIRE(!terrain.footprint({0,0,0,0},0));
  first::Terrain exact;exact.triangles.push_back({{{{.01,0,0},{.05,0,0},{.05,.05,0}}},7});exact.index[{0,0,0}]={0};
  REQUIRE(exact.at(.049,.001,0,7));REQUIRE(!exact.at(.001,.001,0,7));REQUIRE(!exact.at(.049,.001,3,7));

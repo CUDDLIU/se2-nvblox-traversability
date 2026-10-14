@@ -16,7 +16,9 @@ from shapely.geometry import Point, Polygon, box
 from shapely.strtree import STRtree
 
 from geometry import MotionChecker, read_mesh, wrap
+from navigation_modes import TerrainAnnotations
 from paper_pipeline import Config
+from clearance import ClearancePreference
 
 
 class NoPath(ValueError):
@@ -28,7 +30,7 @@ class PlanningCancelled(RuntimeError):
 
 
 class Planner:
-    def __init__(self, directory, longitudinal=.4, lateral=.2, yaw_rate=.6):
+    def __init__(self, directory, longitudinal=.4, lateral=.2, yaw_rate=.6, clearance_weight=6.):
         self.directory = Path(directory)
         self.document = json.loads((self.directory / 'navmesh.json').read_text())
         self.config = Config(**self.document['config'])
@@ -37,6 +39,8 @@ class Planner:
         self.shapes = [Polygon(np.asarray(p['vertices'])[:, :2]) for p in self.polygons]
         self.tree = STRtree(self.shapes)
         self.portals = self.document['portals']
+        self.clearance = ClearancePreference(self.polygons, self.config, weight=clearance_weight,
+                                             field_path=self.directory/'field.npz')
         self.speeds = (float(longitudinal), float(lateral), float(yaw_rate))
         if min(self.speeds) <= 0:
             raise ValueError('Planning velocities must be positive')
@@ -45,6 +49,7 @@ class Planner:
             raise ValueError('Mesh 已改变，请重新构建通行图后规划。')
         blocks, self.trajectory = read_mesh(mesh_path)
         self.checker = MotionChecker(blocks, self.config)
+        self.terrain_annotations = TerrainAnnotations(blocks, self.config.max_step)
         self.positions, self.angles, self.owners = [], [], []
         self.region_positions = defaultdict(list)
         self.extra = defaultdict(set)
@@ -170,11 +175,63 @@ class Planner:
         yaw = math.atan2(2*(w*z+x*y), 1-2*(y*y+z*z))
         return np.r_[point, yaw]
 
+    def resolve_start(self, start, snap=False, radius=.75):
+        """Choose a map entry pose; FIRST must traverse any off-map connection live.
+
+        Never certify or insert a fictitious straight edge from the measured
+        robot pose. Bound XY distance and height to avoid snapping across floors.
+        """
+        actual=np.asarray(start,dtype=float)
+        projected=None
+        try:
+            point,region=self.project(actual[:3])
+            pose=np.r_[point,actual[3]]
+            if (not snap or (np.linalg.norm(point[:2]-actual[:2])<=radius and abs(point[2]-actual[2])<=.20)) and self.checker.motion(pose,pose):
+                return pose,region,dict(actual=actual.tolist(),entry=pose.tolist(),
+                    distance_m=float(np.linalg.norm(point[:2]-actual[:2])),local_connection_required=bool(np.linalg.norm(point-actual[:3])>.03))
+            projected=(point,region)
+        except NoPath:
+            pass
+        if not snap:
+            raise NoPath('起点实际位置与朝向未通过保存地图的机身轮廓/支撑检查；未开始路径搜索。')
+        if not hasattr(self,'entry_index'):
+            from scipy.spatial import cKDTree
+            self.entry_positions=np.asarray(self.positions[:self.base_positions])
+            self.entry_index=cKDTree(self.entry_positions[:,:2])
+        ids=self.entry_index.query_ball_point(actual[:2],radius)
+        candidates=[]
+        if projected is not None and abs(projected[0][2]-actual[2])<=.20 and np.linalg.norm(projected[0][:2]-actual[:2])<=radius:
+            point,region=projected
+            for angle in self.endpoint_angles(point,region).values():
+                candidates.append((float(np.linalg.norm(point-actual[:3])),abs(wrap(angle-actual[3])),(region,),np.r_[point,angle]))
+        for pid in ids:
+            xyz=self.positions[pid]
+            if abs(xyz[2]-actual[2])>.20:continue
+            angles=self.angles[pid]
+            if not angles:continue
+            # Use graph headings for a snapped entry. An arbitrary measured
+            # yaw can fit at the point yet have no checked exit or rotation to
+            # any graph heading. The exact projected start above keeps yaw.
+            for angle in set(angles.values()):
+                candidates.append((float(np.linalg.norm(xyz-actual[:3])),abs(wrap(angle-actual[3])),self.owners[pid],np.r_[xyz,angle]))
+        # A nearby elevated witness is not the nearest ground entry. Include
+        # height in ranking, as project() does, while retaining the XY radius.
+        candidates.sort(key=lambda row:(row[0],row[1]))
+        for first in range(0,len(candidates),32):
+            self.check_cancelled()
+            group=candidates[first:first+32]
+            valid=self.checker.motions([(p,p) for _,_,_,p in group])
+            for (_,_,regions,pose),ok in zip(group,valid):
+                if ok:return pose,regions[0],dict(actual=actual.tolist(),entry=pose.tolist(),regions=list(regions),distance_m=float(np.linalg.norm(pose[:2]-actual[:2])),
+                    local_connection_required=True,connection='FIRST live obstacle checking; outside ASA map certificate')
+        raise NoPath(f'实际起点同层 {radius:.2f} 米内没有可用的地图接入位姿。')
+
     def cost(self, a, b):
         delta = b[:2]-a[:2]
         c, s = math.cos(a[3]), math.sin(a[3])
         vl, vt, omega = self.speeds
-        return abs(c*delta[0]+s*delta[1])/vl + abs(-s*delta[0]+c*delta[1])/vt + abs(wrap(b[3]-a[3]))/omega
+        base = abs(c*delta[0]+s*delta[1])/vl + abs(-s*delta[0]+c*delta[1])/vt + abs(wrap(b[3]-a[3]))/omega
+        return base * self.clearance.edge_factors(np.asarray([a[:3]]), np.asarray([b[:3]]))[0]
 
     def voxel_proof(self, a, b):
         """The paper's continuous-yaw voxel-mask guarantee within a polygon.
@@ -258,11 +315,8 @@ class Planner:
             return np.vstack([start, base+t[:, None]*delta, end])
 
         def objective(t):
-            diff = np.diff(points(t), axis=0)
-            lengths = np.linalg.norm(diff, axis=1)
-            unit = diff/np.maximum(lengths[:, None], 1e-10)
-            grad = np.einsum('ij,ij->i', unit[:-1]-unit[1:], delta)
-            return float(lengths.sum()), grad
+            value, gradient = self.clearance.objective(points(t))
+            return value, np.einsum('ij,ij->i', gradient[1:-1], delta)
 
         result = minimize(objective, np.full(len(edges), .5), jac=True, method='L-BFGS-B',
                           bounds=[(0., 1.)]*len(edges), options={'maxiter': 150, 'ftol': 1e-10})
@@ -328,7 +382,7 @@ class Planner:
             if ok:angles[yaw]=choices[yaw][1]
         return angles
 
-    def query(self, start, goal, goal_yaw=None, timeout=60., cancelled=None):
+    def query(self, start, goal, goal_yaw=None, timeout=60., cancelled=None, snap_start=False):
         started = time.monotonic()
         if len(start) != 4 or not np.isfinite(start).all() or (goal_yaw is not None and not math.isfinite(goal_yaw)):
             raise NoPath('起点位置与朝向必须为有限值。')
@@ -336,10 +390,11 @@ class Planner:
         self._cancelled = cancelled
         try:
             self.check_cancelled()
-            sp, sr = self.project(start[:3])
+            start, sr, entry = self.resolve_start(start,snap=snap_start)
+            sp = start[:3]
             gp, gr = self.project(goal[:3])
-            # The exact measured heading must be feasible. Reject it before
-            # graph construction/Dijkstra, not after an entire candidate path.
+            # Validate the selected entry heading before graph search. The
+            # off-map connection is left to FIRST's live local planner.
             start_pose = np.r_[sp, start[3]]
             if not self.checker.motion(start_pose, start_pose):
                 raise NoPath('起点实际位置与朝向未通过保存地图的机身轮廓/支撑检查；未开始路径搜索。')
@@ -347,7 +402,11 @@ class Planner:
                 goal_pose = np.r_[gp, goal_yaw]
                 if not self.checker.motion(goal_pose, goal_pose):
                     raise NoPath('目标位置与指定朝向未通过保存地图的机身轮廓/支撑检查；未开始路径搜索。')
-            sid = self.add_position(sp, [sr], 0, self.endpoint_angles(sp,sr))
+            # Portal entries belong to both adjoining regions. Dropping one
+            # owner can disconnect a valid heading from its outgoing edges.
+            start_regions=entry.get('regions',[sr])
+            start_angles={y:a for r in start_regions for y,a in self.endpoint_angles(sp,r).items()}
+            sid = self.add_position(sp, start_regions, 0, start_angles)
             gid = self.add_position(gp, [gr], 0, self.endpoint_angles(gp,gr))
             self.angles[sid][-1] = float(start[3])
             if goal_yaw is not None:
@@ -356,7 +415,7 @@ class Planner:
             initial, initial_metrics = self.astar((sid, -1), goals, timeout=timeout)
             self.check_cancelled()
             final = initial
-            report = dict(initial=initial_metrics, straightening='unchanged', yaw_refinement='unchanged')
+            report = dict(initial=initial_metrics, start_connection=entry, straightening='unchanged', yaw_refinement='unchanged')
             pulled,sections = self.straighten_sections(initial)
             if len(pulled)>1:
                 chain, pids, sources = defaultdict(set), [], {}
@@ -419,6 +478,12 @@ class Planner:
                           length_m=float(np.linalg.norm(np.diff(poses[:, :3], axis=0), axis=1).sum()),
                           height_range_m=[float(poses[:, 2].min()), float(poses[:, 2].max())],
                           motion_segments_verified=len(checks), poses=poses.tolist())
+            annotation_started=time.monotonic()
+            report['navigation_modes'] = self.terrain_annotations.annotate(poses)
+            report['mode_annotation'] = self.terrain_annotations.diagnostics
+            report['mode_annotation_seconds']=time.monotonic()-annotation_started
+            report['clearance_preference'] = self.clearance.describe(poses)
+            report['seconds']=time.monotonic()-started
             report['voxel_certified_segments'] = sum(self.voxel_proof(a, b) for a, b in zip(final, final[1:]))
             report['metric_certified_segments'] = len(checks)-report['voxel_certified_segments']
             return report

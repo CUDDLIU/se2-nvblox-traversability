@@ -1,0 +1,16 @@
+{
+  "case": "saved_auto_final",
+  "scope": "isolated localhost ROS, simulated telemetry and global path",
+  "holds": {
+    "idle": 19,
+    "waiting_task_gait": 8,
+    "stale_robot_state": 12,
+    "stale_native_command": 2,
+    "none": 32,
+    "arrived": 1,
+    "waiting_goal_ack": 2
+  },
+  "planner_modes": {
+    "dwa": 76
+  }
+}

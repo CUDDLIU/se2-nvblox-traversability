@@ -1,0 +1,13 @@
+{
+  "expected_before": {
+    "planner.py": "e7791c90d305112b3bb01607970a6d3f3ad080eda8d44175bb1a473a3bfca90a",
+    "search.py": "e82d8c652e18a4385c9c6d024a2f0357ce6b1c29c401bbabdf4a74b0ba9ff5f8"
+  },
+  "files": {
+    "planner.py": "f3cd9aca74349ea4df027d0f1e54b679eb61e80241bb0c63207a87c7ccff5a70",
+    "search.py": "0787145b4d161be9e2c7f5fd0a2c8868713cb2ea28a4879171319f86ad20e2c6",
+    "clearance.py": "dcd5847af216671cbe63056fd3bf278d1044b406fe6596eea3a044c010aeb1f0",
+    "test_clearance.py": "7dac2e1bee756844e5f979caa492438e67d2abaf89931df1e57ddd0ef2f680ef",
+    "test_planner.py": "dd72fc0ae87ffb72e4368361335d838adebfccd1b0f2fc7973fe8cbf95172241"
+  }
+}

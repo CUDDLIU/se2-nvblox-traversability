@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "scenes": 40,
+  "reference_sha256": "1376c2a75fc3a9f30089df19f3d773be3c019fe53354c11aa89697f6f821aae9",
+  "scope": "finite input computeHeightMap; sample ring, cardinal missing-cell fill; filter/changeHeight disabled"
+}

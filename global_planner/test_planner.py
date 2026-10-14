@@ -29,6 +29,49 @@ def make(directory, blocks):
 
 
 class GlobalPlannerTests(unittest.TestCase):
+    def test_corner_prefers_room_away_from_inner_boundary(self):
+        # L-shaped floor: shortest paths hug the inside elbow at (1, 1).
+        blocks={(0,0,0):plane(-3,-1,1,1), (1,0,0):plane(-1,1,1,4)}
+        with tempfile.TemporaryDirectory() as path:
+            centered=make(Path(path),blocks)
+            shortest=Planner(Path(path),clearance_weight=0.)
+            old=shortest.query([-2.,0.,.01,0.],[0.,3.,.01],timeout=30.)
+            new=centered.query([-2.,0.,.01,0.],[0.,3.,.01],timeout=30.)
+            before=centered.clearance.describe(old['poses'])
+            self.assertGreater(new['clearance_preference']['p10_m'],before['p10_m']+.08)
+            self.assertLess(new['length_m'],old['length_m']+1.)
+            self.assertEqual(new['motion_segments_verified'],len(new['poses'])-1)
+
+    def test_start_entry_accounts_for_height_not_just_xy(self):
+        from types import SimpleNamespace
+        planner=Planner.__new__(Planner)
+        planner.positions=[np.array([.027,0,.13]),np.array([.045,0,0.])]
+        planner.base_positions=2;planner.angles=[{0:0.},{0:.1}];planner.owners=[(0,),(1,2)]
+        planner.checker=SimpleNamespace(motions=lambda pairs:[True]*len(pairs))
+        with patch.object(planner,'project',side_effect=NoPath('no exact support')),patch.object(planner,'check_cancelled'):
+            entry,region,metadata=planner.resolve_start([0.,0.,0.,.04],snap=True)
+        np.testing.assert_allclose(entry,[.045,0.,0.,.1])
+        self.assertEqual(region,1)
+        self.assertEqual(metadata['regions'],[1,2])
+        self.assertAlmostEqual(metadata['distance_m'],.045)
+
+    def test_off_map_start_uses_checked_entry_without_certifying_connection(self):
+        with tempfile.TemporaryDirectory() as path:
+            planner=make(Path(path),{(0,0,0):plane(-3,-2,3,2)})
+            actual=[-3.05,0,.01,0.]
+            with self.assertRaises(NoPath):planner.query(actual,[1.,0,.01])
+            result=planner.query(actual,[1.,0,.01],snap_start=True)
+            entry=result['start_connection']
+            self.assertTrue(entry['local_connection_required'])
+            self.assertEqual(entry['actual'],actual)
+            self.assertLessEqual(entry['distance_m'],.75)
+            np.testing.assert_allclose(result['poses'][0],entry['entry'])
+            self.assertTrue(planner.checker.motion(entry['entry'],entry['entry']))
+            self.assertGreater(entry['entry'][0],actual[0])
+            self.assertEqual(len(planner.positions),planner.base_positions)
+            for outside in ([-4.,0,.01,0.],[0.,0,1.5,0.],[0.,0,.24,0.]):
+                with self.assertRaises(NoPath):planner.query(outside,[1.,0,.01],snap_start=True)
+
     def test_free_floor_asa_exact_endpoints_and_goal_yaw(self):
         with tempfile.TemporaryDirectory() as path:
             planner = make(Path(path), {(0,0,0):plane(-3,-2,3,2)})
@@ -83,6 +126,9 @@ class GlobalPlannerTests(unittest.TestCase):
                 with patch.object(planner, 'astar', side_effect=AssertionError('invalid start reached search')):
                     planner.query([-1.,.05,.01,math.pi/2],[1.,.05,.01])
             self.assertEqual(len(planner.positions),planner.base_positions)
+            snapped=planner.query([-1.,.05,.01,math.pi/2],[1.,.05,.01],snap_start=True)
+            self.assertTrue(snapped['start_connection']['local_connection_required'])
+            self.assertAlmostEqual(math.sin(snapped['poses'][0][3]),0.,places=7)
             self.assertTrue(planner.query([-1.,.05,.01,0.],[1.,.05,.01])['success'])
 
     def test_changed_mesh_invalidates_saved_graph(self):
@@ -124,6 +170,9 @@ class GlobalPlannerTests(unittest.TestCase):
             self.assertGreater(result['height_range_m'][1]-result['height_range_m'][0],2.9)
             self.assertGreater(max(p[0] for p in result['poses']),6.9)
             self.assertGreater(result['length_m'],15.)
+            self.assertIn('stair_up',[m['terrain'] for m in result['navigation_modes']])
+            self.assertEqual(result['navigation_modes'][0]['terrain'],'flat')
+            self.assertEqual(result['navigation_modes'][-1]['terrain'],'flat')
 
 
 if __name__=='__main__':unittest.main()

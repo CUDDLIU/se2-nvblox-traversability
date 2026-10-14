@@ -1,0 +1,23 @@
+{
+  "case": "source_corner",
+  "passed": true,
+  "scope": "isolated localhost ROS 2 with simulated telemetry; no actuator",
+  "body": [
+    2.4310136797534936,
+    2.919912806129577,
+    1.589471049062906
+  ],
+  "holds": {
+    "idle": 90,
+    "waiting_goal_ack": 2,
+    "stale_native_command": 1,
+    "none": 40,
+    "arrived": 1
+  },
+  "states": {
+    "idle": 92,
+    "tracking": 41,
+    "arrived": 1
+  },
+  "command_count": 479
+}

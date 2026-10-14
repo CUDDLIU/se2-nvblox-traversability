@@ -1,0 +1,7 @@
+{
+  "reference_sha256": "f6310a90732a34f54ace7e211a5deac8dc170481a494a8fc2605b8439454f21d",
+  "timer_cases": 144,
+  "steer_cases": 100,
+  "passed": true,
+  "scope": "RunTimerFunc, PostProcess, GetState, ProcessVel, CheckStairOaEnabledState; injected CalAvoidance result, transport/scheduler stubs, output buffer length 1"
+}

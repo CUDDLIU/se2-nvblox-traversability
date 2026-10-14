@@ -1,0 +1,72 @@
+{
+  "corner": {
+    "final_pose": [
+      2.42889716648034,
+      2.9304293877213077,
+      1.6113066257454136
+    ],
+    "holds": {
+      "idle": 94,
+      "waiting_goal_ack": 2,
+      "stale_native_command": 1,
+      "none": 41,
+      "arrived": 1
+    },
+    "commands": 490,
+    "full_result_sha256": "0d1d98ea9f40fbd8f67267f4b6c772be096315c8c3781416636a3604c3c5ee59",
+    "position_error_m": 0.07533336792832653,
+    "yaw_error_rad": 0.040510298950517054,
+    "sampled_footprint_wall_overlaps": 0
+  },
+  "gates": {
+    "final_pose": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "holds": {
+      "idle": 95,
+      "waiting_goal_ack": 4,
+      "stale_native_command": 4,
+      "none": 62,
+      "stale_cloud": 5,
+      "stale_localization": 7
+    },
+    "commands": 626,
+    "full_result_sha256": "1b6a2e25560cf87d73adbad041fef8222d0cef41987a56b2eb63e7769667533f"
+  },
+  "native_services": {
+    "acks": [
+      [
+        112,
+        [
+          1
+        ]
+      ],
+      [
+        110,
+        [
+          1
+        ]
+      ]
+    ],
+    "command_hz": 10.000825285379884,
+    "last_command": [
+      1.5,
+      0.0,
+      0.0
+    ]
+  },
+  "localhost_sender": {
+    "velocity_hz": 29.99569810853285,
+    "tested_velocity": [
+      1.5,
+      0.6000000238418579,
+      1.0
+    ],
+    "watchdog_zero_within_ms": 200,
+    "private_session_test": true,
+    "shutdown_zero_packets": 3
+  },
+  "scope": "Original local binaries; ASA localization/global planner and route-to-local-goal transport adapter retained. No physical motion performed."
+}

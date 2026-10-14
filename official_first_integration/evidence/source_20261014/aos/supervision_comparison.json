@@ -1,0 +1,6 @@
+{
+  "reference_sha256": "2faf5921b6772f0abdea0de178b54e88a17dac54ecb0f0a849bd31a169c33d3e",
+  "cases": 512,
+  "passed": true,
+  "scope": "CheckContinuousWarningStatus with Go2Point=false; clock, strings and error-map lookup stubbed; timer arithmetic executed"
+}

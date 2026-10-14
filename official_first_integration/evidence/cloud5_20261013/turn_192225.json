@@ -1,0 +1,39 @@
+{
+  "session": "20261013_192225_9d8bab2d",
+  "active_samples": 313,
+  "active_holds": {
+    "generation_changed": 1,
+    "waiting_gait": 3,
+    "posture_settling": 2,
+    "stale_cloud": 2,
+    "none": 216,
+    "blocked": 47,
+    "stale_cloud_acquisition": 2,
+    "no_progress": 14,
+    "recovery_recheck": 14,
+    "rear_blocked": 11,
+    "stale_robot_state": 1
+  },
+  "stuck_samples": 162,
+  "stuck_holds": {
+    "none": 81,
+    "no_progress": 14,
+    "blocked": 41,
+    "recovery_recheck": 14,
+    "rear_blocked": 11,
+    "stale_robot_state": 1
+  },
+  "stuck_seconds": 19.365897475,
+  "blocking_voxel_key": [
+    74,
+    -19,
+    -10
+  ],
+  "blocking_voxel_center_m": [
+    3.725,
+    -0.925,
+    -0.475
+  ],
+  "blocked_samples_with_near_point": 35,
+  "rear_blocked_samples_with_near_point": 11
+}

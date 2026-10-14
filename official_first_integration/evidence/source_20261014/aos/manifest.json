@@ -1,0 +1,14 @@
+{
+  "height_map_nav": {
+    "board": "AOS 10.21.31.103",
+    "path": "robot/share/height_map_nav/bin/height_map_nav",
+    "size": 1555240,
+    "sha256": "1376c2a75fc3a9f30089df19f3d773be3c019fe53354c11aa89697f6f821aae9"
+  },
+  "basic_server": {
+    "board": "AOS 10.21.31.103",
+    "path": "robot/share/basic_server/bin/basic_server",
+    "size": 3182136,
+    "sha256": "2faf5921b6772f0abdea0de178b54e88a17dac54ecb0f0a849bd31a169c33d3e"
+  }
+}

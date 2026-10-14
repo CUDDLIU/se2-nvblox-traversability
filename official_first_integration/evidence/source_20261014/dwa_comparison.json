@@ -1,0 +1,263 @@
+[
+  {
+    "scene": "clear",
+    "source_velocity": [
+      1.5,
+      0.0,
+      0.0
+    ],
+    "source_status": 1001,
+    "path_id": 4530,
+    "native_commands": [
+      {
+        "velocity": [
+          1.5,
+          0.0,
+          0.0
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1001,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "left",
+    "source_velocity": [
+      1.399999976158142,
+      0.4000000059604645,
+      0.5
+    ],
+    "source_status": 1001,
+    "path_id": 4382,
+    "native_commands": [
+      {
+        "velocity": [
+          1.4,
+          0.4,
+          0.5
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1001,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "right",
+    "source_velocity": [
+      1.399999976158142,
+      -0.4000000059604645,
+      -0.5
+    ],
+    "source_status": 1001,
+    "path_id": 4236,
+    "native_commands": [
+      {
+        "velocity": [
+          1.4,
+          -0.4,
+          -0.5
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1001,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "front",
+    "source_velocity": [
+      0.30000001192092896,
+      0.0,
+      0.0
+    ],
+    "source_status": 1001,
+    "path_id": 1878,
+    "native_commands": [
+      {
+        "velocity": [
+          0.3,
+          0.0,
+          0.0
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1001,
+        0
+      ]
+    ],
+    "source_cloud_count": 2440,
+    "native_cloud_count": 2440,
+    "cloud_equal": true
+  },
+  {
+    "scene": "side",
+    "source_velocity": [
+      1.399999976158142,
+      -0.30000001192092896,
+      0.5
+    ],
+    "source_status": 1001,
+    "path_id": 4263,
+    "native_commands": [
+      {
+        "velocity": [
+          1.4,
+          -0.3,
+          0.5
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1001,
+        0
+      ]
+    ],
+    "source_cloud_count": 2240,
+    "native_cloud_count": 2240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "blocked",
+    "source_velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "source_status": 1101,
+    "path_id": 1215,
+    "native_commands": [
+      {
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1101,
+        1101
+      ]
+    ],
+    "source_cloud_count": 6400,
+    "native_cloud_count": 6400,
+    "cloud_equal": true
+  },
+  {
+    "scene": "goal_blocked",
+    "source_velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "source_status": 1102,
+    "path_id": -1,
+    "native_commands": [
+      {
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1102,
+        1102
+      ]
+    ],
+    "source_cloud_count": 840,
+    "native_cloud_count": 840,
+    "cloud_equal": true
+  },
+  {
+    "scene": "goal_fine",
+    "source_velocity": [
+      0.30000001192092896,
+      0.0,
+      0.0
+    ],
+    "source_status": 1001,
+    "path_id": 1878,
+    "native_commands": [
+      {
+        "velocity": [
+          0.3,
+          0.0,
+          0.0
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1001,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "goal_yaw",
+    "source_velocity": [
+      0.0,
+      0.0,
+      0.699999988079071
+    ],
+    "source_status": 1001,
+    "path_id": 1878,
+    "native_commands": [
+      {
+        "velocity": [
+          0.0,
+          0.0,
+          0.7
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        1001,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  }
+]

@@ -64,6 +64,7 @@ class Library {
 struct Limits {double x=1.5,y=.4,w=.8,planar=1.5;};
 struct Weights {double goal=1,yaw=.5,lateral=.2;std::array<double,3> obstacle={1.,.8,.6};};
 struct Selection {int id=-1;double score=std::numeric_limits<double>::infinity();int hard_rejected=0,limit_rejected=0,terrain_rejected=0;Velocity command;};
+enum class Direction {Any,Forward,Reverse};
 // Project-level temporal preference, not a recovered official score term.
 // Its bounded cost breaks near ties without changing native velocities,
 // rejecting an otherwise usable escape, or competing with a soft obstacle
@@ -81,12 +82,25 @@ inline double score(const Primitive&p,const Pose& goal,const Penalties& hits,con
  return s;
 }
 inline Selection select(const Library&lib,const Pose&goal,const Penalties&hits,const Limits&lim,
-                         const std::function<bool(const Primitive&)>& check,const Velocity* previous=nullptr){
+                         const std::function<bool(const Primitive&)>& check,const Velocity* previous=nullptr,
+                         Direction direction=Direction::Any,const double* route_heading=nullptr){
  Selection out;std::vector<std::pair<double,int>> ranked;ranked.reserve(count);
  for(const auto&p:lib.paths){auto v=p.velocity;
   if(std::abs(v.x)>lim.x+1e-6||std::abs(v.y)>lim.y+1e-6||std::abs(v.w)>lim.w+1e-6||std::hypot(v.x,v.y)>lim.planar+1e-6){++out.limit_rejected;continue;}
+  if((direction==Direction::Forward&&v.x<-.001)||(direction==Direction::Reverse&&v.x>=-.05))continue;
+  if(direction!=Direction::Any&&std::hypot(v.x,v.y)<.01&&std::abs(v.w)<.01)continue;
   if(hits.hard[p.id]>=1){++out.hard_rejected;continue;}
-  ranked.emplace_back(score(p,goal,hits)+continuity_cost(v,previous),p.id);
+  double cost=score(p,goal,hits)+continuity_cost(v,previous);
+  // Reverse travel keeps the body facing forward; looking at a rear goal must
+  // not reward turning the body 180 degrees while backing.
+  // Route following separates translation to the preview point from body yaw
+  // along the current route segment. Short previews must not steer yaw toward
+  // a lateral tracking error. Default native scoring remains unchanged.
+  if(direction==Direction::Reverse||route_heading){
+   double heading=direction==Direction::Reverse?goal.yaw:*route_heading;
+   cost-=.5*std::abs(wrap(std::atan2(goal.y,goal.x)-p.end.yaw));cost+=(direction==Direction::Reverse?.5:1.)*std::abs(wrap(heading-p.end.yaw));
+  }
+  ranked.emplace_back(cost,p.id);
  }
  std::sort(ranked.begin(),ranked.end());
  // The binary scores all candidates, validates the best, marks it rejected and

@@ -10,19 +10,24 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'scanplanner_integrati
 from core import packet,decode_packet
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--enter-navigation',action='store_true');ap.add_argument('--normal-speed',action='store_true');ap.add_argument('--gait',action='store_true');ap.add_argument('--gait-timeout',action='store_true');ap.add_argument('--session',action='store_true');args=ap.parse_args();mode=0 if args.enter_navigation else 1;mode_requests=0
+    ap=argparse.ArgumentParser();ap.add_argument('--source',action='store_true');ap.add_argument('--official',action='store_true');ap.add_argument('--enter-navigation',action='store_true');ap.add_argument('--normal-speed',action='store_true');ap.add_argument('--gait',action='store_true');ap.add_argument('--gait-timeout',action='store_true');ap.add_argument('--gait-delay',type=float,default=.7);ap.add_argument('--session',action='store_true');args=ap.parse_args();mode=0 if args.enter_navigation else 1;mode_requests=0
     vx,vy,wz=(1.2,0.,.8) if args.normal_speed else (.1,0.,.2)
+    if args.official:vx,vy,wz=1.5,0.6000000238418579,1.
+    if args.source:vx,vy,wz=2.,1.,1.
     root=Path(__file__).resolve().parents[1]
     sock=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);sock.bind(('127.0.0.1',0));sock.setblocking(False)
     sys.path.insert(0,str(root));from run import session_remaps,ros_args
+    from robot import GAIT_CONFIRM_TIMEOUT
+    if args.source:GAIT_CONFIRM_TIMEOUT=9.
+    stop_after=max(3.,2.+args.gait_delay) if args.gait else 3.
     remaps=session_remaps('loopback') if args.session else {}
     rclpy.init();node=rclpy.create_node('m20_udp_loopback_test');pub=node.create_publisher(TwistStamped,remaps.get('/first/cmd_vel_stamped','/first/cmd_vel_stamped'),qos_profile_sensor_data)
     foreign=node.create_publisher(TwistStamped,'/first/cmd_vel_stamped',qos_profile_sensor_data) if args.session else None
     gait_pub=node.create_publisher(Int32,remaps.get('/first/request_gait','/first/request_gait'),1);gait_requests=[];actual_gait=0x3002;gait_test=args.gait or args.gait_timeout
-    proc=subprocess.Popen([sys.executable,str(root/'robot.py'),'--loopback-test','--host','127.0.0.1','--port',str(sock.getsockname()[1]),'--output',str(root/'runtime/udp_loopback'),*(['--execute'] if gait_test else []),*(['--enter-navigation'] if args.enter_navigation else []),*ros_args(remaps)],start_new_session=True)
+    proc=subprocess.Popen([sys.executable,str(root/'robot.py'),'--loopback-test','--host','127.0.0.1','--port',str(sock.getsockname()[1]),'--output',str(root/'runtime/udp_loopback'),*(['--official-limits'] if args.official else []),*(['--source-planner'] if args.source else []),*(['--execute'] if gait_test else []),*(['--enter-navigation'] if args.enter_navigation else []),*ros_args(remaps)],start_new_session=True)
     peer=None;seq=0;received=[];began=time.monotonic();last_status=0;stopped_at=None;ready=False;startup_deadline=began+15
     try:
-        while (time.monotonic()-began<(6 if args.gait_timeout else 5)) if ready else time.monotonic()<startup_deadline:
+        while (time.monotonic()-began<(GAIT_CONFIRM_TIMEOUT+3 if args.gait_timeout else stop_after+2)) if ready else time.monotonic()<startup_deadline:
             now=time.monotonic();rclpy.spin_once(node,timeout_sec=.002)
             while True:
                 try:data,peer=sock.recvfrom(65536)
@@ -34,7 +39,7 @@ def main():
                 if (doc['Type'],doc['Command'])==(1101,5):
                     assert doc['Items']==dict(Mode=1);mode=1;mode_requests+=1
             if peer and now-last_status>.08:
-                if gait_requests and not args.gait_timeout and now-gait_requests[0]>.7:actual_gait=0x3003
+                if gait_requests and not args.gait_timeout and now-gait_requests[0]>args.gait_delay:actual_gait=0x3003
                 basic=dict(ControlUsageMode=mode,HES=0,MotionState=17,Direction=0,Sleep=0,Gait=actual_gait)
                 sock.sendto(packet(1002,6,dict(BasicStatus=basic),seq),peer);seq+=1
                 sock.sendto(packet(1002,4,dict(MotionStatus=dict(Height=.57)),seq),peer);seq+=1;last_status=now
@@ -42,7 +47,7 @@ def main():
                 if peer and pub.get_subscription_count()>0 and (not gait_test or gait_pub.get_subscription_count()>0):began=now;ready=True
                 else:continue
             if gait_test and now-began>1:gait_pub.publish(Int32(data=0x3003))
-            if now-began<3 or args.gait_timeout:
+            if now-began<stop_after or args.gait_timeout:
                 m=TwistStamped();m.header.stamp=node.get_clock().now().to_msg();m.header.frame_id='base_link_dog';m.twist.linear.x=vx;m.twist.linear.y=vy;m.twist.angular.z=wz;pub.publish(m)
             elif stopped_at is None:stopped_at=now
             else:
@@ -54,10 +59,19 @@ def main():
         assert ready,'ROS/UDP discovery did not finish within 15 seconds'
         assert any(abs(v['X']-vx)<1e-8 and abs(v['Y']-vy)<1e-8 and abs(v['Yaw']-wz)<1e-8 for _,v in received),(root/'runtime/udp_loopback/status.json').read_text()
         if gait_test:
-            assert len(gait_requests)==1,gait_requests
+            expected=3 if args.gait_timeout else 1+int(args.gait_delay/3)
+            assert len(gait_requests)==(expected if args.source else 1),gait_requests
             pending=[v for t,v in received if gait_requests[0]+.15<t<gait_requests[0]+.6]
-            assert pending and all(abs(v['X']-vx)<1e-8 for v in pending),'gait request interrupted flat motion'
-        tail=[v for t,v in received if t>(gait_requests[0]+3.3 if args.gait_timeout else stopped_at+.2)]
+            if args.source:assert pending and all(v['X']==v['Y']==v['Yaw']==0 for v in pending),'source moved during gait switch'
+            else:assert pending and all(abs(v['X']-vx)<1e-8 for v in pending),'gait request interrupted flat motion'
+        report=json.loads((root/'runtime/udp_loopback/status.json').read_text())
+        if args.gait:
+            assert not report['failed'] and report['gait']['pending']==0,report
+            confirmed=[v for t,v in received if gait_requests[0]+args.gait_delay+.2<t<stopped_at]
+            assert confirmed and all(abs(v['X']-vx)<1e-8 for v in confirmed),'no motion after delayed confirmation'
+        if args.gait_timeout:
+            assert report['last_error']['source']=='gait_confirmation_timeout',report
+        tail=[v for t,v in received if t>(gait_requests[0]+GAIT_CONFIRM_TIMEOUT+.3 if args.gait_timeout else stopped_at+.2)]
         assert tail and all(v['X']==0 and v['Y']==0 and v['Yaw']==0 for v in tail)
         active=[t for t,v in received if t>began+1 and t<began+3]
         hz=(len(active)-1)/(active[-1]-active[0]);assert hz>=20,hz

@@ -8,7 +8,7 @@ from pathlib import Path
 import time
 import numpy as np
 from scipy.spatial.transform import Rotation
-from alignment import MapAligner,deskew,rotation
+from alignment import MapAligner,deskew,rotation,correction_at
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -30,6 +30,7 @@ class Localization(Node):
         self.poses=deque(maxlen=1000);self.clouds=deque(maxlen=5);self.last_scan=0.;self.transform=None;self.stable=0
         self.good_at=0.;self.last_try=0.;self.last_ros=0.;self.last_position=None
         self.pool=ThreadPoolExecutor(max_workers=1);self.future=None;self.generation=0
+        self.relocalizations=0
         self.pub=self.create_publisher(PoseStamped,'/se2_scan/map_transform',qos_profile_sensor_data)
         self.status_pub=self.create_publisher(String,'/se2_scan/localization_status',1)
         self.create_subscription(Odometry,'/nvblox_lio/odom',self.odom,qos_profile_sensor_data)
@@ -41,6 +42,7 @@ class Localization(Node):
                mesh_sha256=self.aligner.mesh_sha256,**kwargs)
         self.status_pub.publish(String(data=json.dumps(d)))
         tmp=self.output/'status.tmp';tmp.write_text(json.dumps(d,indent=2));tmp.replace(self.output/'status.json')
+        with (self.output/'status.jsonl').open('a') as f:f.write(json.dumps(d)+'\n')
         if state!='tracking':self.get_logger().info(reason)
 
     def odom(self,m):
@@ -50,6 +52,7 @@ class Localization(Node):
         if not np.isfinite(a).all() or np.linalg.norm(a[4:])<.5:return
         if self.last_ros and (stamp<self.last_ros-.05 or (self.last_position is not None and np.linalg.norm(a[1:4]-self.last_position)>.3)):
             self.transform=None;self.good_at=0.;self.poses.clear();self.clouds.clear();self.stable=0;self.generation+=1;self.last_ros=0.
+            self.aligner.recovery_seed=None
             self.pub.publish(PoseStamped())
             self.cache.unlink(missing_ok=True)
             self.state('lost','Odometry discontinuity; waiting for a new map match')
@@ -74,6 +77,7 @@ class Localization(Node):
         source=deskew(np.concatenate([self.unpack(m) for m in messages]),poses);body=poses[-1,1:4]
         m=messages[-1]
         t,y,quality=self.aligner.fit_rigid(source,body,previous);quality['compute_ms']=(time.monotonic()-began)*1000
+        quality.update(input_kind='raw_deskew')
         return generation,(t,y,quality),m.header.stamp.sec+m.header.stamp.nanosec/1e9
 
     def tick(self):
@@ -83,6 +87,7 @@ class Localization(Node):
         if len(keys)!=1:return
         if self.publisher_key is not None and self.publisher_key!=keys[0]:
             self.transform=None;self.good_at=0.;self.stable=0;self.generation+=1;self.cache_loaded=False
+            self.aligner.recovery_seed=None
             self.pub.publish(PoseStamped());self.poses.clear();self.clouds.clear()
         self.publisher_key=keys[0]
         if not self.cache_loaded:
@@ -91,6 +96,7 @@ class Localization(Node):
                 d=json.loads(self.cache.read_text())
                 if d['mesh_sha256']==self.aligner.mesh_sha256 and d['publisher_gid']==self.publisher_key:
                     self.transform=(np.asarray(d['translation'],dtype=float),Rotation.from_quat(d['quaternion_xyzw']).as_matrix())
+                    self.aligner.recovery_seed=self.transform
                     self.state('localizing','Revalidating the saved transform for this same running odometry publisher')
             except (OSError,ValueError,KeyError,TypeError):pass
         if self.future is not None and self.future.done():
@@ -100,7 +106,8 @@ class Localization(Node):
                 if generation==self.generation:
                     if self.transform is not None:
                         ot,oy=self.transform
-                        self.stable=self.stable+1 if np.linalg.norm(t-ot)<.005 and Rotation.from_matrix(y@oy.T).magnitude()<.002 else 0
+                        body=self.poses[-1][1:4]
+                        self.stable=self.stable+1 if np.linalg.norm(correction_at(body,ot,oy,t,y))<.005 and Rotation.from_matrix(y@oy.T).magnitude()<.002 else 0
                     self.transform=(t,y)
                     if 0<=age<1.2 and (self.good_at>0 or self.stable>=5):
                         self.good_at=now
@@ -117,6 +124,18 @@ class Localization(Node):
                 self.stable=0
                 if not self.good_at:self.transform=None
                 self.state('lost' if now-self.good_at>1.5 else 'degraded',str(exc))
+                if self.good_at and now-self.good_at>1.5 and self.poses and self.transform is not None:
+                    # A rejected previous correction must not lock ICP forever
+                    # to the same failed basin. Stop publishing, invalidate the
+                    # route, and repeat the existing strict initial match near
+                    # the last map pose propagated by measured odometry.
+                    t,r=self.transform;self.aligner.anchor=r@self.poses[-1][1:4]+t
+                    self.aligner.recovery_seed=(t.copy(),r.copy())
+                    self.aligner.seed_yaw=float(np.arctan2(r[1,0],r[0,0]))
+                    self.transform=None;self.good_at=0.;self.generation+=1;self.relocalizations+=1
+                    self.cache.unlink(missing_ok=True);self.pub.publish(PoseStamped())
+                    self.state('localizing','Reacquiring near odometry-propagated last map pose; route invalidated',
+                               anchor=self.aligner.anchor.tolist(),relocalizations=self.relocalizations)
             self.future=None
         if self.future is not None or len(self.clouds)<5 or len(self.poses)<100 or now-self.last_try<.5:return
         stamp=self.clouds[-1].header.stamp.sec+self.clouds[-1].header.stamp.nanosec/1e9

@@ -1,6 +1,7 @@
 #include "first.hpp"
 #include "route.hpp"
 #include "terminal.hpp"
+#include "world.hpp"
 #include <iostream>
 #include <chrono>
 #define REQUIRE(v) do{if(!(v))throw std::runtime_error(#v);}while(0)
@@ -8,6 +9,12 @@ int main(int argc,char**argv){
  REQUIRE(argc==2);first::Library lib(argv[1]);
  REQUIRE(lib.paths[1215].velocity.x==0);REQUIRE(lib.paths[1215].velocity.w==0);
  for(const auto&p:lib.paths){double x=0,y=0;for(int i=0;i<10;++i){double a=i*.1*p.velocity.w;x+=.1*(std::cos(a)*p.velocity.x-std::sin(a)*p.velocity.y);y+=.1*(std::sin(a)*p.velocity.x+std::cos(a)*p.velocity.y);REQUIRE(std::hypot(x-p.samples[i].x,y-p.samples[i].y)<.00002);}}
+ // Planning's 4 m broad phase retains every official table cell and every
+ // allowed swept body point. The source evidence and visualization stay 5 m.
+ for(int i=0;i<first::cells;++i){double x=-1.475+(i/80+.5)*.05,y=-1.975+(i%80+.5)*.05;REQUIRE(std::hypot(x,y)<4.);}
+ for(const auto&p:lib.paths){auto v=p.velocity;if(std::abs(v.x)>1.5||std::abs(v.y)>.4||std::abs(v.w)>.8||std::hypot(v.x,v.y)>1.5)continue;
+  for(auto q:first::sweep(p,{}))REQUIRE(std::hypot(q.x,q.y)+std::hypot(.44536,.28836)<2.4);
+ }
  auto h=lib.penalties({});auto out=first::select(lib,{2.5,0,0,0},h,{},[](auto&){return true;});
  REQUIRE(out.id>=0);REQUIRE(out.command.x>=1.4);REQUIRE(out.command.y==0);REQUIRE(out.command.w==0);
  bool duplicate=false;

@@ -1,0 +1,13 @@
+{
+  "deployed": true,
+  "backup": "/home/nvidia/scanplanner_test/se2_nvblox_surface_shadow/official_first_integration/backups/latency_1791971347001800138",
+  "verified_source_files": 15,
+  "binary_sha256": "a8031a6f97acbb6df738c55576d00ba9e7d90fa12e6cb567dc801d56e57ec357",
+  "old_session_stopped": true,
+  "shutdown_errors": [],
+  "real_navigation_restarted": false,
+  "physical_stair_localization_verified": false,
+  "real_sensor_shadow_localization": 50,
+  "unit_tests": 69,
+  "post_deployment_checks_passed": true
+}

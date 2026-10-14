@@ -1,0 +1,167 @@
+[
+  {
+    "scene": "turn",
+    "source_velocity": [
+      0.0,
+      0.0,
+      0.699999988079071
+    ],
+    "source_status": 2001,
+    "path_id": -1,
+    "native_commands": [
+      {
+        "velocity": [
+          0.0,
+          0.0,
+          0.7
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        2001,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "approach",
+    "source_velocity": [
+      1.5,
+      0.0,
+      0.20000000298023224
+    ],
+    "source_status": 2002,
+    "path_id": -1,
+    "native_commands": [
+      {
+        "velocity": [
+          1.5,
+          0.0,
+          0.2
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        2002,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "close",
+    "source_velocity": [
+      0.4000000059604645,
+      0.0,
+      0.0
+    ],
+    "source_status": 2003,
+    "path_id": -1,
+    "native_commands": [
+      {
+        "velocity": [
+          0.4,
+          0.0,
+          0.0
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        2003,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "yaw",
+    "source_velocity": [
+      0.0,
+      0.0,
+      0.699999988079071
+    ],
+    "source_status": 2003,
+    "path_id": -1,
+    "native_commands": [
+      {
+        "velocity": [
+          0.0,
+          0.0,
+          0.7
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        2003,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "arrived",
+    "source_velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "source_status": 999,
+    "path_id": -1,
+    "native_commands": [],
+    "native_statuses": [
+      [
+        999,
+        0
+      ]
+    ],
+    "source_cloud_count": 240,
+    "native_cloud_count": 240,
+    "cloud_equal": true
+  },
+  {
+    "scene": "obstacle",
+    "source_velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "source_status": 2005,
+    "path_id": -1,
+    "native_commands": [
+      {
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "count": 12
+      }
+    ],
+    "native_statuses": [
+      [
+        2005,
+        2005
+      ]
+    ],
+    "source_cloud_count": 1440,
+    "native_cloud_count": 1440,
+    "cloud_equal": true
+  }
+]

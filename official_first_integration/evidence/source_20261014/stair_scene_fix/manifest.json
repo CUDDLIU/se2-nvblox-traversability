@@ -1,0 +1,11 @@
+{
+  "global_planner/navigation_modes.py": "e074fa9d63b5d102a9b1071eafc950a30ac71c806e136b13ed6465d9e97ea78d",
+  "global_planner/planner.py": "e7791c90d305112b3bb01607970a6d3f3ad080eda8d44175bb1a473a3bfca90a",
+  "global_planner/test_navigation_modes.py": "b04d8b0a1c757727362b1219ea27f1beed1e1b47c74c68e77ec1a03e0b1951fd",
+  "global_planner/fixtures/stair_scene_20261014/mesh_corridors.npz": "9d5818b62824b5a73dc8dba6b6b7c0de0c472c242cfed01eb4f5ced9fd11e341",
+  "global_planner/fixtures/stair_scene_20261014/routes.json": "3dc2a41e9cc9cdc17c12ab0fb1c0305f0f9d3cdbbc3fb11b2abfa8e1e84527cb",
+  "official_first_integration/source/acceptance_captured_stairs.py": "8096382e56b76850848cc169b8130dd432566b47bd57c73ad906f6de2b47d8ab",
+  "official_first_integration/README.md": "37a3a5a98eb3a772442ebbe0c36b5b7ca617ed56bc0b59fc347d333551352be9",
+  "official_first_integration/evidence/source_20261014/stair_scene_fix/local_down.json": "b220aa502cbdca75bc83a498f91670a35a0d52863b92b3f271c753ee4a54d763",
+  "official_first_integration/evidence/source_20261014/stair_scene_fix/local_up.json": "f52a1feb1dfc5cbe1b0837230a009cfa8ee1ff711adf2c450e953e5286f7da6d"
+}

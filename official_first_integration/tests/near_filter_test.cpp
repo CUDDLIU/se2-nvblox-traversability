@@ -49,6 +49,10 @@ int main(){
   REQUIRE(near_support(rays,scratch)==reference(rays,.04,1.5));
   REQUIRE(near_support(rays,scratch,.025,.9)==reference(rays,.025,.9));
  }
+ ScanKeys<int> growing;growing.reset(1);
+ for(int i=0;i<20000;++i)*growing.insert({i,-i,i%31}).first=i+7;
+ for(int i=0;i<20000;++i)REQUIRE(*growing.find({i,-i,i%31})==i+7);
+ growing.reset(1);REQUIRE(!growing.find({1,-1,1}));
  ScanKeys<uint8_t> keys;
  for(int round=0;round<20;++round){size_t n=round%2?10000:5;keys.reset(n);std::unordered_set<Key,Hash> expected;
   for(size_t i=0;i<n;++i){Key k{int(random()%173)-86,int(random()%101)-50,int(random()%47)-23};

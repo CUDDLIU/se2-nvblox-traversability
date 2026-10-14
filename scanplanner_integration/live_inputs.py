@@ -6,7 +6,7 @@ import time
 
 class InputHealth:
     def __init__(self):
-        self.samples = {name: [] for name in ('cloud', 'imu', 'odom')}
+        self.samples = {name: [] for name in ('cloud', 'imu', 'odom', 'registered', 'lidar_odom')}
         self.invalid = {}
 
     def receive(self, name, stamp, now, valid=True):
@@ -24,6 +24,9 @@ class InputHealth:
         samples = self.samples[name]
         return len(samples) >= 2 and -.1 <= now - samples[-1] < .5
 
+    def registered_pair(self, now):
+        return any(-.1<=now-t<.5 for t in set(self.samples['registered']) & set(self.samples['lidar_odom']))
+
     def summary(self, now):
         return {name: dict(samples=len(samples), fresh=self.fresh(name, now),
                            age_s=now-samples[-1] if samples else None,
@@ -31,7 +34,7 @@ class InputHealth:
                 for name, samples in self.samples.items()}
 
 
-def ensure_live_inputs(root, output, spawn, running, timeout=45.):
+def ensure_live_inputs(root, output, spawn, running, timeout=45., require_registered=False):
     import rclpy
     from rclpy.qos import qos_profile_sensor_data
     from rclpy.signals import SignalHandlerOptions
@@ -48,13 +51,18 @@ def ensure_live_inputs(root, output, spawn, running, timeout=45.):
     def receive(name, msg):
         stamp = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
         valid = True
-        if name == 'odom':
+        if name in ('odom', 'lidar_odom'):
             p, q = msg.pose.pose.position, msg.pose.pose.orientation
             values = (p.x, p.y, p.z, q.x, q.y, q.z, q.w)
             valid = (msg.header.frame_id == 'nvblox_odom' and
                      msg.child_frame_id == 'base_link_dog' and
                      all(math.isfinite(v) for v in values) and
                      .9 < sum(v*v for v in values[3:]) < 1.1)
+        elif name == 'imu':
+            q=msg.orientation
+            valid=all(math.isfinite(v) for v in (q.x,q.y,q.z,q.w)) and .9<q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w<1.1 and msg.orientation_covariance[0]!=-1
+        elif name == 'registered':
+            valid=msg.header.frame_id=='base_link_dog' and msg.width*msg.height>0
         elif name == 'cloud':
             valid = (msg.header.frame_id in ('lidar_link', 'base_link_dog') and
                      msg.width * msg.height > 0)
@@ -62,7 +70,9 @@ def ensure_live_inputs(root, output, spawn, running, timeout=45.):
 
     for name, topic, kind in [('cloud', '/LIDAR/POINTS_NX', PointCloud2),
                               ('imu', '/IMU', Imu),
-                              ('odom', '/nvblox_lio/odom', Odometry)]:
+                              ('odom', '/nvblox_lio/odom', Odometry),
+                              ('registered', '/nvblox_lio/body_cloud', PointCloud2),
+                              ('lidar_odom', '/nvblox_lio/odom_lidar', Odometry)]:
         node.create_subscription(kind, topic, lambda msg, n=name: receive(n, msg),
                                  qos_profile_sensor_data)
 
@@ -87,7 +97,7 @@ def ensure_live_inputs(root, output, spawn, running, timeout=45.):
             if lio is not None and lio.poll() is not None:
                 raise RuntimeError(f'SuperLIO exited ({lio.returncode}); see {output / "lio.log"}')
             # Allow DDS discovery before deciding whether a new source is needed.
-            if elapsed >= 3. and publisher_count == 1 and all(health.fresh(n, now) for n in ('cloud', 'odom')):
+            if elapsed >= 3. and publisher_count == 1 and all(health.fresh(n, now) for n in (('cloud', 'odom', 'registered', 'imu', 'lidar_odom') if require_registered else ('cloud', 'odom'))) and (not require_registered or health.registered_pair(now)):
                 result = report('ready')
                 print('Live LiDAR and body odometry ready' + (' (session-owned SuperLIO)' if lio else ' (existing SuperLIO)'), flush=True)
                 return result

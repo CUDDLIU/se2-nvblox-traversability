@@ -1,0 +1,6 @@
+{
+  "reference_sha256": "2faf5921b6772f0abdea0de178b54e88a17dac54ecb0f0a849bd31a169c33d3e",
+  "cases": 704,
+  "passed": true,
+  "scope": "SwitchGait branching/retries; transport and confirmation waits stubbed; not a physical gait test"
+}

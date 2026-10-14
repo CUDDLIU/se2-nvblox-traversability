@@ -1,0 +1,170 @@
+[
+  {
+    "frame": "cloud0",
+    "equal": true,
+    "reference": {
+      "input_points": 111014.0,
+      "cropped_points": 8011.0,
+      "voxel_points": 6786.0,
+      "filtered_points": 6596.0,
+      "obstacle_cells": 1365.0,
+      "crop_ms": 3.899167,
+      "voxel_ms": 0.550902,
+      "radius_ms": 15.686782,
+      "grid_ms": 0.83597,
+      "total_ms": 20.952787999999998
+    },
+    "optimized": {
+      "input_points": 111014.0,
+      "cropped_points": 8011.0,
+      "voxel_points": 6786.0,
+      "filtered_points": 6596.0,
+      "obstacle_cells": 1365.0,
+      "crop_ms": 0.482675,
+      "voxel_ms": 0.536214,
+      "radius_ms": 0.93863,
+      "grid_ms": 0.872836,
+      "total_ms": 2.882389
+    }
+  },
+  {
+    "frame": "cloud1",
+    "equal": true,
+    "reference": {
+      "input_points": 110468.0,
+      "cropped_points": 7881.0,
+      "voxel_points": 6655.0,
+      "filtered_points": 6455.0,
+      "obstacle_cells": 1316.0,
+      "crop_ms": 3.775866,
+      "voxel_ms": 0.534262,
+      "radius_ms": 15.515702,
+      "grid_ms": 0.875331,
+      "total_ms": 20.616614
+    },
+    "optimized": {
+      "input_points": 110468.0,
+      "cropped_points": 7881.0,
+      "voxel_points": 6655.0,
+      "filtered_points": 6455.0,
+      "obstacle_cells": 1316.0,
+      "crop_ms": 0.491732,
+      "voxel_ms": 0.523189,
+      "radius_ms": 0.926022,
+      "grid_ms": 0.846883,
+      "total_ms": 2.807858
+    }
+  },
+  {
+    "frame": "cloud2",
+    "equal": true,
+    "reference": {
+      "input_points": 52967.0,
+      "cropped_points": 4642.0,
+      "voxel_points": 3887.0,
+      "filtered_points": 3745.0,
+      "obstacle_cells": 783.0,
+      "crop_ms": 1.307509,
+      "voxel_ms": 0.302252,
+      "radius_ms": 8.992558,
+      "grid_ms": 0.513493,
+      "total_ms": 11.158373000000001
+    },
+    "optimized": {
+      "input_points": 52967.0,
+      "cropped_points": 4642.0,
+      "voxel_points": 3887.0,
+      "filtered_points": 3745.0,
+      "obstacle_cells": 783.0,
+      "crop_ms": 0.239466,
+      "voxel_ms": 0.313805,
+      "radius_ms": 0.619577,
+      "grid_ms": 0.473011,
+      "total_ms": 1.648835
+    }
+  },
+  {
+    "frame": "cloud3",
+    "equal": true,
+    "reference": {
+      "input_points": 163486.0,
+      "cropped_points": 11160.0,
+      "voxel_points": 7839.0,
+      "filtered_points": 7675.0,
+      "obstacle_cells": 1481.0,
+      "crop_ms": 5.95941,
+      "voxel_ms": 0.760127,
+      "radius_ms": 18.169218,
+      "grid_ms": 0.977096,
+      "total_ms": 25.858587
+    },
+    "optimized": {
+      "input_points": 163486.0,
+      "cropped_points": 11160.0,
+      "voxel_points": 7839.0,
+      "filtered_points": 7675.0,
+      "obstacle_cells": 1481.0,
+      "crop_ms": 0.700733,
+      "voxel_ms": 0.772864,
+      "radius_ms": 1.015977,
+      "grid_ms": 0.964936,
+      "total_ms": 3.521455
+    }
+  },
+  {
+    "frame": "cloud4",
+    "equal": true,
+    "reference": {
+      "input_points": 110348.0,
+      "cropped_points": 7972.0,
+      "voxel_points": 6691.0,
+      "filtered_points": 6466.0,
+      "obstacle_cells": 1341.0,
+      "crop_ms": 2.812242,
+      "voxel_ms": 0.563319,
+      "radius_ms": 15.721119,
+      "grid_ms": 0.867811,
+      "total_ms": 20.374428
+    },
+    "optimized": {
+      "input_points": 110348.0,
+      "cropped_points": 7972.0,
+      "voxel_points": 6691.0,
+      "filtered_points": 6466.0,
+      "obstacle_cells": 1341.0,
+      "crop_ms": 0.481876,
+      "voxel_ms": 0.559222,
+      "radius_ms": 0.956295,
+      "grid_ms": 0.835874,
+      "total_ms": 2.854228
+    }
+  },
+  {
+    "frame": "cloud5",
+    "equal": true,
+    "reference": {
+      "input_points": 110830.0,
+      "cropped_points": 7978.0,
+      "voxel_points": 6768.0,
+      "filtered_points": 6590.0,
+      "obstacle_cells": 1362.0,
+      "crop_ms": 2.880245,
+      "voxel_ms": 0.546102,
+      "radius_ms": 15.823907,
+      "grid_ms": 0.89978,
+      "total_ms": 20.127825
+    },
+    "optimized": {
+      "input_points": 110830.0,
+      "cropped_points": 7978.0,
+      "voxel_points": 6768.0,
+      "filtered_points": 6590.0,
+      "obstacle_cells": 1362.0,
+      "crop_ms": 0.479827,
+      "voxel_ms": 0.52831,
+      "radius_ms": 0.948838,
+      "grid_ms": 0.865412,
+      "total_ms": 2.84258
+    }
+  }
+]

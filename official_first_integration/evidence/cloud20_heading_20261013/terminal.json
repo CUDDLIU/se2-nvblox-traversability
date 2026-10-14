@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "scene": "terminal_switch",
+  "commands": 167,
+  "max_control_period_ms": 44.65905699908035,
+  "mean_control_period_ms": 33.27533074656931,
+  "max_planning_ms": 3.0225240006984677,
+  "states": [
+    "idle",
+    "tracking",
+    "waiting_inputs"
+  ]
+}

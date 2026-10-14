@@ -35,10 +35,14 @@ class ReferenceAligner(MapAligner):
         held=np.arange(len(source))%5==0;train=source[~held];test=source[held]
         if len(train)>3000:train=train[np.linspace(0,len(train)-1,3000).astype(int)]
         coarse=train[::max(1,len(train)//800)];candidates=[]
+        # ICP's capture basin can be narrower than the old 1 m seed spacing.
+        # Cover half-metre offsets within the same bounded search area; retain
+        # held-out quality, floor/tilt bounds and qualified-pose ambiguity checks.
+        offsets=np.arange(-2.,2.01,.5)
         for y in np.arange(-math.pi,math.pi,math.pi/12)+getattr(self,'seed_yaw',0.):
             r=rotation(y)
-            for dx in (-2.,-1.,0.,1.,2.):
-                for dy in (-2.,-1.,0.,1.,2.):
+            for dx in offsets:
+                for dy in offsets:
                     t=self.anchor+np.array([dx,dy,0.])-body@r.T
                     distance,_=self.tree.query(coarse@r.T+t,workers=1)
                     candidates.append((float(np.minimum(distance,.3).mean()),t,r))
@@ -54,6 +58,19 @@ class ReferenceAligner(MapAligner):
             # another hypothesis by being counted as an ambiguous alternative.
             if not self.initial_acceptable(q):rejected.append(q);continue
             fits.append((q['clipped_mean_m'],t,r,q))
+        # Reacquisition may preserve a measured roll/pitch estimate that a
+        # yaw-only lattice loses. Evaluate it with the tracking plane objective
+        # and the SAME strict initial quality/ambiguity checks. It is only a
+        # hypothesis; never publish the rejected old transform as a fallback.
+        seed=getattr(self,'recovery_seed',None)
+        if seed is not None:
+            try:
+                t,r=self.refine_rigid_planes(train,*seed)
+                p=body@r.T+t;q=self.quality(test,body,t,r)
+                if (math.acos(float(np.clip(r[2,2],-1,1)))<=math.radians(10) and
+                        np.linalg.norm(p[:2]-self.anchor[:2])<=.5 and abs(p[2]-self.anchor[2])<=.5 and self.initial_acceptable(q)):
+                    fits.append((q['clipped_mean_m'],t,r,q))
+            except ValueError:pass
         if not fits:
             best=min(rejected,key=lambda q:q['clipped_mean_m']) if rejected else {}
             raise ValueError('no initial candidate passes quality checks: '+str(best))

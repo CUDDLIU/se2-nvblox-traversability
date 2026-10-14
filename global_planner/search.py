@@ -75,6 +75,14 @@ class Search:
         delta=b[:,:2]-a[:,:2];c,s=np.cos(a[:,3]),np.sin(a[:,3])
         angle=np.abs((b[:,3]-a[:,3]+math.pi)%(2*math.pi)-math.pi)
         cost=np.abs(c*delta[:,0]+s*delta[:,1])/p.speeds[0]+np.abs(-s*delta[:,0]+c*delta[:,1])/p.speeds[1]+angle/p.speeds[2]
+        # Compute each spatial edge once, shared by all yaw layers/directions.
+        # The reverse-graph heuristic uses these same nonnegative costs.
+        if p.clearance.weight:
+            spatial=np.sort(pair//self.stride,axis=1)
+            count=len(p.positions)
+            unique,inverse=np.unique(spatial[:,0]*count+spatial[:,1],return_inverse=True)
+            positions=np.asarray(p.positions)
+            cost *= p.clearance.edge_factors(positions[unique//count],positions[unique%count])[inverse]
         offsets=np.r_[0,np.cumsum(np.bincount(pair[:,0],minlength=n))].astype(np.int64)
         return pair,coords,np.ascontiguousarray(cost),offsets,np.ascontiguousarray(pair[:,1])
 
@@ -96,7 +104,7 @@ class Search:
         from geometry import CORE
         digest=hashlib.sha256(self.base_graph[1].tobytes())
         paths=[self.p.directory/'navmesh.json',self.p.directory/'field.npz']
-        paths += [Path(__file__).with_name(name) for name in ('search.py','planner.py','geometry.py')]
+        paths += [Path(__file__).with_name(name) for name in ('search.py','planner.py','geometry.py','clearance.py')]
         paths += [CORE/name for name in ('raster.so','native_mesh.py','pose_graph.py','paper_pipeline.py','paper_native.py')]
         for path in paths:
             if path.exists():digest.update(path.read_bytes())

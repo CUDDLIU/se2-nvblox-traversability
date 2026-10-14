@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.16)
+project(nos_source LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
+find_package(PCL REQUIRED COMPONENTS common filters search octree)
+add_library(nos_source SHARED core.cpp height_frontend.cpp handler_core.cpp)
+target_include_directories(nos_source PRIVATE ${PCL_INCLUDE_DIRS} ../src)
+target_link_libraries(nos_source PRIVATE ${PCL_LIBRARIES})
+target_compile_options(nos_source PRIVATE -Wall -Wextra -Wpedantic)
