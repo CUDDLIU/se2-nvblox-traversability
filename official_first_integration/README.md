@@ -1,12 +1,12 @@
-# Official NOS local planning integration
+# Local planning and stair navigation integration
 
-**2026-10-14：默认后端改为 `source`（源码复现）。** 运行时只加载本项目编译的 `build/source/libnos_source.so` 与已核对哈希的轨迹数值表，不启动官方规划二进制，不加载 DrDDS SDK。`--local-backend official` 显式选择旧的二进制对照后端，`legacy` 选择更早的自定义版本。构建源码后端用 `bash official_first_integration/source/build.sh`。
+**2026-10-14：默认后端改为 `source`（源码后端）。** 运行时只加载本项目编译的 `build/source/libnos_source.so` 与已核对哈希的轨迹数值表，不启动官方规划二进制，不加载 DrDDS SDK。`--local-backend official` 显式选择旧的二进制对照后端，`legacy` 选择更早的自定义版本。构建源码后端用 `bash official_first_integration/source/build.sh`。
 
 **2026-10-14 楼梯中途停止与 ASA 居中修复：** 楼梯高度图改用完整去畸变的机身点云，避免原定位匹配点集的 2 m 盲区和 0.5 m 下采样造成近身踏板缺测。新机器启动前运行 `bash scanplanner_integration/build_stair_lio.sh`，默认从项目同级的 `Super-LIO-nx-scanplanner-port` 构建私有 LIO；也可将上游工作区路径作为第一个参数。补丁仅增加密集机身点云输出，不修改上游工作区或定位匹配参数。ASA 居中余量偏好为 0.45 m、权重 6，并对非绿色区域增加权重 4 的软代价；必要窄通道仍可通过，1.5 m 局部前瞻不变。51 项源码测试、23 项 ASA 测试及 12 级上下楼模拟通过，实机效果仍需复测。详见 [修复与验证记录](evidence/source_20261014/stair_midflight/README.md)。
 
 **ASA 分段导航已接入（2026-10-14）：** 默认 `NavMode=1、ObsMode=0`。ASA 从原始地图的连续踏面生成平地／上楼／下楼段，路径与模式通过会话隔离的 `/se2_global/navigation_route` 一次发布。普通 `Path` 仅用于显示和参考后端，不触发源码执行。楼梯段使用 `Gait=0x3003` 与 AOS AUTO/STAIR/NORMAL 参数，平地使用 `0x3002` 与 AUTO/FLAT/NORMAL 参数；收到参数 ACK 和实际步态确认后执行。新目标、取消和重规划清理旧模式；取消同时终止 ASA 未完成的查询。
 
-识别采用同一份 Mesh，不增加机身、支撑或碰撞验证。保留水平踏面检测（12°、至少两级同向 6 cm～`max_step+2.5 cm` 高差、踏面间距 12～80 cm、提前 0.6 m）；同时支持 TSDF 抹平踏面的持续爬升：从不超过 65° 的面采样实际地面高度，按路径高度选择楼层，0.48 m 窗口坡度至少 0.30、持续至少 0.6 m 且累计高差至少 0.30 m。只填补至多 12 cm 的短缺口，要求至少 80% 原始有效采样，并拒绝过大单跳和明显反向起伏。此分支提前 0.8 m 切换，结束后延续 0.5 m；准备／退出段重叠时中间平台保持楼梯步态。陡坡也使用爬升模式，不能把这个分类器理解为精确区分楼梯与陡坡。缓坡、单个低凸起、仅路径 Z 噪声不切换。参数属于 **ASA 接入算法，不是反汇编得到的官方识别算法**。局部规划不再增加末端命令扫掠复检，保留官方候选路径、旋转及直线避障检查。普通选点默认前向 NORMAL 速度，官方表对应平地 maxX=1、楼梯 maxX=1 m/s，maxY/maxYaw 均为 1；这是配置上限，不是恒定执行速度。
+识别采用同一份 Mesh，不增加机身、支撑或碰撞验证。保留水平踏面检测（12°、至少两级同向 6 cm～`max_step+2.5 cm` 高差、踏面间距 12～80 cm、提前 0.6 m）；同时支持 TSDF 抹平踏面的持续爬升：从不超过 65° 的面采样实际地面高度，按路径高度选择楼层，0.48 m 窗口坡度至少 0.30、持续至少 0.6 m 且累计高差至少 0.30 m。只填补至多 12 cm 的短缺口，要求至少 80% 原始有效采样，并拒绝过大单跳和明显反向起伏。此分支提前 0.8 m 切换，结束后延续 0.5 m；准备／退出段重叠时中间平台保持楼梯步态。陡坡也使用爬升模式，不能把这个分类器理解为精确区分楼梯与陡坡。缓坡、单个低凸起、仅路径 Z 噪声不切换。上述参数用于 **ASA 地形分类与模式标注**。局部规划不再增加末端命令扫掠复检，保留官方候选路径、旋转及直线避障检查。普通选点默认前向 NORMAL 速度，官方表对应平地 maxX=1、楼梯 maxX=1 m/s，maxY/maxYaw 均为 1；这是配置上限，不是恒定执行速度。
 
 
 2026-10-14 时延与定位修复：NX 点云保留原有 ±4 m 裁剪、1 cm 体素、10 cm 半径四邻点判定及 5 cm 障碍计数规则；合并等价裁剪，使用空间哈希提前终止邻点计数，保留 PCL 参考入口用于逐点及规划输出对比。ROS 点云 payload 改用 `array('B')`，避免 Python 逐字节验证。每个导航会话从原网络配置生成独立 DDS 配置，保留网卡白名单和 UDP 缓冲，将共享内存区设为至少 32 MiB 以容纳完整 NX 点云；不改写系统原配置。状态新增 `flat_filter` 分阶段耗时、`planning_ms/cycle_ms`、原始点云接收/拒收计数，便于区分计算迟延和传输丢帧。`source/benchmark_cloud.py` 对实测 NPZ 做数值/速度结果一致性检查；`source/acceptance_latency.py` 在隔离 ROS 域回放完整点云，不连接执行器。
@@ -17,7 +17,7 @@
 
 高度图输出已经是“一点一个障碍格”，直接进入规划器障碍表，**不再经过原始回波的双点计数、最大 Z 排除或离群过滤**。保留官方高度阈值 0.25 m，`STAIR_OA=false`；`STAIR_OA=true` 是用 0.08 m 阈值避开台阶，不能当作上楼开关。RViz 的 occupancy 显示实际输入，楼梯时使用重力坐标系及对应 TF。含楼梯路线的进度投影使用地面高度（机身位置减遥测高度），完成条件核对目标楼层，避免同一 XY 不同楼层提前到达；没有添加机身支撑/足端检查。
 
-**复现与适配边界：** 已复现捕获配置的 NOS 轨迹规划、原始点云过滤、DWA/直线避障状态，以及 AOS 高度图主链、任务参数和步态事务。高度图分别通过 200 组射线、60 组 IMU、32 帧累积回调、40 组建图、120 组代价图原始指令对照。源码 handler 的候选预测、碰撞、代价选优、减速和定时器决策也有指令对照，但它属于 HANDLE_STEER 链路，**不叠加到自主 DWA 后面**。本项目把高度图语义障碍接到 NOS 自主规划器，属于明确的接入适配，不声称这就是已证实的官方自动上楼拓扑。官方整套系统所有配置、handler 的完整传输、`PointInfo=4` 跨地图动作仍不在等价验证范围内。
+**功能与验证范围：** 当前包含轨迹规划、原始点云过滤、DWA/直线避障状态、高度图主链、任务参数和步态事务。高度图已通过 200 组射线、60 组 IMU、32 帧累积回调、40 组建图和 120 组代价图离线对照。速度避障 handler 的候选预测、碰撞、代价选优、减速和定时器决策也有离线验证；它属于 HANDLE_STEER 链路，**不叠加到自主 DWA 后面**。楼梯模式把高度图语义障碍送入自主局部规划器。所有机器人配置、handler 的完整传输、`PointInfo=4` 跨地图动作仍未完成验证。
 
 2026-10-14 实机失败修复：会话 `20261014_144859_1ea038c6` 的跨层路径被旧水平面检测器全部漏标，3,432 条活动记录均为平地步态、楼梯高度图 0 帧。已将实际地图的原始三角面走廊和 8 条路径纳入 `global_planner/fixtures/stair_scene_20261014` 回归；两条升高 3.5 m 的路径正确标注，其余 6 条平地路径保持平地，反向路径验证下楼。最后一条路线的楼梯模式区间为 2.909～10.868 m，早于实测停住的 3.283 m。`source/acceptance_captured_stairs.py` 使用这份真实地图/路线验证 ROS 模式、感知及模拟步态确认；位姿为路径回放，不是实际爬楼或速度闭环验证。
 
@@ -140,43 +140,43 @@ Legacy start scripts remain unchanged until these acceptance conditions pass. Do
 
 ## 2026-10-14 AOS 保存点与源码接入
 
-用户确认官方自动上楼使用预先保存的点/任务。AOS `basic_server` 的 `NavWorker::handle_task`（0x1a1450）依次设置任务参数、读取任务 `Gait`、调用 `SwitchGait`、发送路径点和目标；点属性 4 是“楼梯准备点”，到达后调用 `CallMapSwitch`。这是任务驱动的切换证据，不能称为已经找到“临时点任意目标后的实时楼梯分类器”。NOS `motionInfoHandler` 只读取速度，不读取步态。
+保存点任务依次设置任务参数、读取 `Gait`、请求步态切换并提交路径点和目标。任务属性驱动的切换与 ASA 根据地图标注地形是两种不同入口。点属性 4 涉及楼梯准备点和跨地图切换，当前保存点接口不支持此类动作。
 
 `source/task_profile.py` 根据捕获的 AOS 导航配置选择参数：`NavMode=0` 直线，`1` 自主；`Gait=12290 (0x3002)` 平地、`12291 (0x3003)` 楼梯；**`Speed=0` 正常、`1` 低速、`2` 高速**。`Manner=1` 后退。`ObsMode!=0` 写入 `judge_close=true`，原直线规划器据此跳过障碍检查；不能从楼梯步态自行推导这个值。配置中的 ORIENTEER 表虽被加载，但捕获的参数选择分支没有为其它步态赋索引 2，不能按名字猜测选择逻辑。
 
 源码保存点入口是每个会话隔离的 `/first/saved_goal`（`std_msgs/String`，实际 remap 见 `runtime/SESSION/session.json`），一次请求必须同时提供当前 ASA `se2_scan_map` 坐标与 `PosX/PosY/PosZ/AngleYaw`（米/弧度）、`Gait/Speed/Manner/ObsMode/NavMode`。不提供自动执行的示例目标；请求本身表示选点。`/first/cancel`（std_msgs/Empty，同样按会话隔离）取消保存点，RViz 新点击也取消原任务。该桥接并非官方任务文件导入器。它只接普通点 `PointInfo=0`；`PointInfo=4`、跨地图 `MapID`、额外 Terrain/Posture 动作会明确拒绝，不能静默略过。普通 RViz 点击重置成独立的默认规划参数，保存点的楼梯参数不会遗留。
 
-`source/gait.py` 复现 AOS `VelControl::SwitchGait`（0x1adbf0）的三次发送、每次最多 3000 ms 等待确认。源码发送器只接已用于本机导航的 0x3002/0x3003；等待期间发零速度，状态过期或操作模式改变时不重发。取消/换目标不会抹掉已发出的物理步态切换：先保持零速度等待旧切换确认或锁定故障，随后才能发新请求，避免重叠。三次失败锁定发送故障；晚到的确认不恢复旧目标。官方任务代码里未看到对 SwitchGait 返回值的有效拦截，源码的确认后放行属于明确的接入保护。
+`source/gait.py` 最多发送三次步态请求，每次最多等待 3000 ms 确认。源码发送器只接已用于本机导航的 0x3002/0x3003；等待期间发零速度，状态过期或操作模式改变时不重发。取消/换目标不会抹掉已发出的物理步态切换：先保持零速度等待旧切换确认或锁定故障，随后才能发新请求，避免重叠。三次失败锁定发送故障；晚到的确认不恢复旧目标。执行器在实际步态确认后放行。
 
-AOS `height_map_nav` 提供 `/HEIGHT_MAP_STAIR_OA_ENABLE` 服务端。源码 `heightmap.py` 复现回调及 `computeCostMap` 有限高度图分支：四邻域相对高差、保留原始点计数与低邻域判定。**OA=1 选约 0.08 m 阈值，OA=0、已知地形选约 0.25 m；开启此开关使 13 cm 台阶被挡住，不是开启爬楼。** `height_frontend.cpp/.py` 已补齐捕获配置的上游链，`height_adapter.py` 提供独立 ROS 接口。默认 NOS `pcl_pass_grid → /NAV_POINTS → localPlanner` 输入链不是这个分支；不能把单点障碍格直接送回需要每格至少两个原始回波的计数器。
+AOS `height_map_nav` 提供 `/HEIGHT_MAP_STAIR_OA_ENABLE` 服务端。源码 `heightmap.py` 实现回调及有限高度图代价计算：四邻域相对高差、保留原始点计数与低邻域判定。**OA=1 选约 0.08 m 阈值，OA=0、已知地形选约 0.25 m；开启此开关使 13 cm 台阶被挡住，不是开启爬楼。** `height_frontend.cpp/.py` 已补齐捕获配置的上游链，`height_adapter.py` 提供独立 ROS 接口。默认 NOS `pcl_pass_grid → /NAV_POINTS → localPlanner` 输入链不是这个分支；不能把单点障碍格直接送回需要每格至少两个原始回波的计数器。
 
-源码局部状态保留自主规划的跟踪、无可用轨迹、目标占障、终点调整，以及直线规划的初始转向、接近、终点对齐、停障与十周期清障等待。没有在原 `runDWA` 中找到逐次加长回退距离的独立恢复机；后退候选属于同一轨迹选择。不同于官方的接入保护包括数据时效、会话隔离、路线剩余长度约束；显式关闭直线 OA 的保存点不额外重新开启碰撞检查。
+源码局部状态保留自主规划的跟踪、无可用轨迹、目标占障、终点调整，以及直线规划的初始转向、接近、终点对齐、停障与十周期清障等待。当前自主规划没有逐次加长回退距离的独立恢复机；后退候选参与同一轨迹选择。不同于官方的接入保护包括数据时效、会话隔离、路线剩余长度约束；显式关闭直线 OA 的保存点不额外重新开启碰撞检查。
 
 任务层另接入 `supervision.py`：停障、连续规划异常、定位丢失和指令未刷新按 AOS 共用的“最后健康时间”计时，默认超过 30 秒锁定本次任务；异常类别变化不会重置计时。新目标才清除任务故障。Go2Point 可选逻辑按捕获配置关闭。
 
 ### 对照和验证
 
-- 原始 AArch64 指令离线仿真：步态事务 704 组、任务参数 48 组、OA/地形回调 66 组、预构建高度图 120 组、持续异常计时 512 组均通过。仿真只替换日志、消息存取与发送/等待接口，未连接硬件；各脚本说明了具体替身范围。
+- 离线行为对照：步态事务 704 组、任务参数 48 组、OA/地形回调 66 组、预构建高度图 120 组、持续异常计时 512 组均通过。仿真只替换日志、消息存取与发送/等待接口，未连接硬件；各脚本说明了具体替身范围。
 - DWA 9 个静态场景、直线 6 个静态场景与原二进制对照见 `evidence/source_20261014/`；不据此宣称所有状态/输入均已等价。
 - 源码行为单测 27 项、发送器单测 13 项；本机独立 ROS 域的 90° 拐角无采样机身穿墙、输入超时/取消恢复、保存点直线和自主两种模式的步态等待/参数复位均通过，自主分支另外验证拒绝同 XY、不同楼层的错误路径。保存点测试覆盖真实空 PointCloud2，修复了空数据字段偏移导致工作线程终止的问题。
 - UDP 发送器另外通过 127.0.0.1 模拟器：4 秒后确认触发两次步态请求，始终不确认触发三次请求后锁定，等待期间零速度，退出发送三个零速度包。
 - 实机楼梯和跨地图任务未测试；代码中的 `stair_reconstruction_complete=false` 保留，避免将内核对照通过误报成完整上楼能力。
 
-### 开源来源判断
+### 算法与依赖
 
-ELF 动态符号直接证明使用 PCL 的 PassThrough/CropBox/VoxelGrid/RadiusOutlierRemoval、Eigen、OpenCV；独立 `passable_area` 还依赖 ANYbotics `grid_map` 的数据结构和转换。NOS `DwaPlanner` 实际使用 4641 条预计算全向定速轨迹和四层碰撞对应表，不能仅凭类名断言是 ROS `dwa_local_planner`，也未见标准完整加速度动态窗口。它与 CMU 轨迹库/对应表方案的思路接近，但 CMU 样本数及非均匀索引与这里不同，没有证据确认直接 fork。AOS 高差/计数判障与任务状态机按本机指令复现，未找到可确认的同名开源实现。RL 中出现 HiMLoco 名称不等于已证明策略来源；底层关节控制仍由机器人原控制器完成。
+点云计算使用 PCL 的 PassThrough/CropBox/VoxelGrid/RadiusOutlierRemoval 等操作及 Eigen。局部轨迹规划使用 4641 条预计算全向定速轨迹和四层碰撞对应表；高度图按相对高差、点数和邻域条件生成障碍。算法说明不将该规划器标为某个 ROS DWA/TEB 包或 CMU 项目的直接移植。底层关节控制由机器人原控制器完成。
 
-参考：[PCL filters](https://pointclouds.org/documentation/group__filters.html)、[grid_map](https://github.com/anybotics/grid_map)、[CMU path generator](https://github.com/jizhang-cmu/autonomy_stack_go2/blob/foxy-humble/src/base_autonomy/local_planner/paths/path_generator.m)、[原始 DWA 论文](https://publications.ri.cmu.edu/storage/publications/pub_files/pub1/fox_dieter_1997_1/fox_dieter_1997_1.pdf)。其中库依赖是确定证据，算法血缘尚无直接证明。
+参考：[PCL filters](https://pointclouds.org/documentation/group__filters.html)、[grid_map](https://github.com/anybotics/grid_map)、[CMU path generator](https://github.com/jizhang-cmu/autonomy_stack_go2/blob/foxy-humble/src/base_autonomy/local_planner/paths/path_generator.m)、[原始 DWA 论文](https://publications.ri.cmu.edu/storage/publications/pub_files/pub1/fox_dieter_1997_1/fox_dieter_1997_1.pdf)。这些资料用于说明相关算法与依赖，不代表直接代码继承关系。
 
 ### AOS 高度图源码组件（2026-10-14）
 
 `source/height_adapter.py --output DIR` 接收 `/nvblox_lio/body_cloud`、同一时间戳的完整 `/nvblox_lio/odom_lidar` 和 `/IMU`；这是 ROS 传输适配，计算模块不依赖 ROS/DDS。输出 `/first/source_height/cloud_gravity`、`cloud_nav`、`status` 及重力帧 TF。输入必须是已经完成 LIO 配准的机身点云，不能以原始 NX 点云冒充。该独立工具没有运动指令或步态请求发布者，不由默认自主导航启动器额外启动；默认源码执行器在楼梯段直接调用同一计算模块。
 
-`/first/source_height/terrain`（Int32）对应已复现的地形回调；`/first/source_height/stair_oa`（SetBool）对应楼梯避障开关。开关只改变是否把台阶当作障碍，不负责切换楼梯步态。此独立工具未找到包围点云时刻的 IMU 时，保留原程序未校正点云的分支，并通过 `gravity_matched=false` 报告；实际楼梯执行输入则等待有效 IMU 区间，过期停车。空观测、累计清除、机身转动、时间未同步与开关语义均有回归覆盖。
+`/first/source_height/terrain`（Int32）对应地形回调；`/first/source_height/stair_oa`（SetBool）对应楼梯避障开关。开关只改变是否把台阶当作障碍，不负责切换楼梯步态。此独立工具未找到包围点云时刻的 IMU 时，保留原程序未校正点云的分支，并通过 `gravity_matched=false` 报告；实际楼梯执行输入则等待有效 IMU 区间，过期停车。空观测、累计清除、机身转动、时间未同步与开关语义均有回归覆盖。
 
 配置按捕获 YAML：外窗 X/Y ±4 m、Z −1.5～0.5 m，内框 X ±0.4/Y ±0.2/Z −0.5～0.4 m，两次 5 cm 体素，10 cm 八叉树和高度格、81×81、每格最后 30 个样本。并行射线采用 X=±0.4 m 起点、端点缩短 0.1 m、最多四个相交体素；串行分支另保留近身/侧带点。源码串行遍历并行分支的射线并求清除集合，几何结果与原多线程集合一致；耗时单独记录，不增加控制循环线程。
 
-离线验证：`test_height_frontend.py`；原始指令对照：`differential_height_frontend.py`、`differential_height_sync.py`；隔离 ROS：`acceptance_height.py`。后者必须在隔离 ROS 域运行。对照中 PCL 查询/滤波委托给安装的 PCL，不能据此宣称所有 PCL 版本完全等价；本机和 Jetson 分别构建验证。没有启用原配置关闭的插值、深度/图像调试或 change-height 分支。
+离线验证：`test_height_frontend.py`；离线对照：`differential_height_frontend.py`、`differential_height_sync.py`；隔离 ROS：`acceptance_height.py`。后者必须在隔离 ROS 域运行。对照中 PCL 查询/滤波委托给安装的 PCL，不能据此宣称所有 PCL 版本完全等价；本机和 Jetson 分别构建验证。没有启用原配置关闭的插值、深度/图像调试或 change-height 分支。
 
 ### NOS handler 源码组件与验证范围
 
@@ -190,10 +190,10 @@ ELF 动态符号直接证明使用 PCL 的 PassThrough/CropBox/VoxelGrid/RadiusO
 
 状态输出为关闭 0、空闲 1、一般运行 2、余量不大于 0.3 m 时 3。输入未就绪或遥控输入从有到无的首个检查周期会清空旧速度；无有效候选输出零并清空旧速度。楼梯避障开关在后处理阶段下发，包括无有效候选的分支；原程序即使服务调用返回 false，也记录本次请求值。这里的 StairOA 仍表示“把楼梯视为障碍”，不是上楼步态开关。
 
-`differential_handler.py` 在离线 Unicorn 中运行捕获 handler ELF 的完整 `CalAvoidance`（`is_transform_cloud=false`），计算函数使用原始指令，替换内存分配、容器存储和 libc/libm 外部调用；24 组场景的选中速度、余量及有效候选数一致，另覆盖 600 次积分、300 次路径判定、55 组限速。`differential_handler_state.py` 对照 144 组 RunTimer/PostProcess 分支和 100 组归一化速度输入；候选结果由测试注入，传输/定时器及长度为 1 的输出缓冲使用测试替身。证据见 `evidence/source_20261014/handler*_comparison.json`。Jetson 的固定原始指令样例无需 Unicorn 即可回归。
+`differential_handler.py` 对照速度避障计算（`is_transform_cloud=false`）：24 组场景的选中速度、余量及有效候选数一致，另覆盖 600 次积分、300 次路径判定、55 组限速。该离线测试对内存、容器与外部调用使用测试替身。`differential_handler_state.py` 对照 144 组 RunTimer/PostProcess 分支和 100 组归一化速度输入；候选结果由测试注入，传输/定时器及长度为 1 的输出缓冲使用测试替身。证据见 `evidence/source_20261014/handler*_comparison.json`。Jetson 的固定参考样例无需仿真环境即可回归。
 
 AOS 高度图前端在 Jetson 以 3 万点合成输入、16 帧连续处理测得，稳定帧 P50 64.84 ms、P95 67.68 ms、最大 69.11 ms，包含建图与代价图，不含 ROS 传输或运动控制；这不是现场性能保证。源码与测试已同步，程序保持由操作者手动启动。
 
 Jetson 的 handler 单次候选选优离线测量：空点云 P50 0.96 ms，含 60 个障碍点的合成门口场景 P50 40.67 ms、P95 40.84 ms（每组 12 帧，去掉前两帧）；详见 `handler_jetson_benchmark.json`。这些数值不能与不同输入/线程的高度图耗时直接相加当作现场周期。加入楼梯输入同步和语义障碍接入回归后，源码单元测试在本机与 Jetson 均为 48 项通过。
 
-handler 的算法属于采样速度、短时运动预测、碰撞筛选和加权代价选优这一类局部避障；有明确的 Eigen/PCL 调用证据，没有证据把它标成某个 ROS DWA/TEB 开源包的直接移植。反汇编中确认的规则与项目新增的 ASA 地形分类、ROS 传输适配在本文中分别说明。
+handler 使用速度采样、短时运动预测、碰撞筛选和加权代价选优。ASA 负责全局路径及地形模式，ROS 适配负责传感输入和执行接口；各模块的验证范围分别记录。

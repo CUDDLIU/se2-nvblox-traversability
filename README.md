@@ -17,7 +17,7 @@ Mesh-based traversability, ASA global routing, and FIRST-based local navigation 
 
 SE(2) Nvblox Traversability turns an incremental [nvblox](https://github.com/nvidia-isaac/nvblox) mesh into a local map of feasible robot positions and headings. It checks the robot's physical envelope, floor support, step height, slope, and headroom, then shows how much heading freedom remains in each cell. A ROS 2 interface supports sensor recording, reconstruction from bags, parameter comparison, and RViz inspection.
 
-The current live navigation chain uses **ASA for global planning** and an independent **FIRST-based local planner**, reusing the captured official trajectory library and collision correspondence tables. ScanPlanner is retained as an earlier integration, not the current execution entry point.
+The current live navigation chain uses **ASA for global planning** and a **trajectory-library local planner** with collision correspondence tables, candidate scoring, and straight-line/autonomous obstacle avoidance. The default `source` backend is built from this repository. ScanPlanner remains available as an earlier integration.
 
 Developed on an M20 robot with a Jetson Orin NX, dual LiDAR, and a RealSense D435i. The geometry core also builds and runs on a Linux CPU without ROS, CUDA, or robot hardware.
 
@@ -211,7 +211,7 @@ The finer physical-clearance classifier currently has substantial CPU cost. **Th
 
 ## Current limits
 
-- FIRST reuses the captured trajectory library and collision tables, plus audited selection/terminal behavior; the complete vendor state machine is not reproduced. Temporal continuity and stair adaptation are project extensions. See the [implementation audit](official_first_integration/evidence/audit.md).
+- The local planner uses trajectory and collision tables, with terrain-specific perception and task/gait handling. Offline tests and simulated stair execution do not establish physical staircase acceptance or support for every robot configuration. See the [implementation scope](official_first_integration/README.md).
 - Cross-floor **geometric planning** is implemented; supervised arrival evidence above is on flat ground. It does not establish physical staircase acceptance.
 - The live FIRST layer does not veto candidates for missing support in the old map. It uses saved heights only as relative terrain references and live odometry/body height as the ground datum. This is distinct from map-build support checks and does not provide live hole/drop-off detection.
 - Near-body return clusters and short collision holds remain under investigation. No blanket occupancy expiry or intensity-only filtering is used to erase these points.

@@ -2,7 +2,7 @@
 
 Source: NOS `/opt/robot/share/planner`, ELF build ID `c99ebf84f89e85be231a2b63da1beaeb9d941c1d`. Exact files and hashes: `manifest.json`. Binary and tables are local vendor assets, excluded from Git; no license or source availability is inferred.
 
-Historical reimplementation audit (superseded as the default by the original-binary deployment below). Verified from assets and AArch64 disassembly:
+Historical local-planner audit (superseded as the default by the later deployments). Configuration and behavior notes:
 
 - 4,641 primitives, ten samples at 0.1 s, one second horizon. Samples match forward Euler integration of stored body velocity, not an analytic arc. Test checks every sample (20 μm tolerance for text rounding).
 - Hard collisions: `updatePathPenalty` 0xb9658–0xb966c increments for every table occurrence. Repeated IDs within a row matter.
@@ -28,7 +28,7 @@ The independent ROS node currently implements DWA selection, the audited termina
 
 ## 2026-10-13: live NOS identity, window geometry and local obstacle pipeline
 
-Read-only SSH verified the running NOS files against the captured `localPlanner` and both YAML hashes above. Processes 2877/2878 were `localPlanner` / `pcl_pass_grid`; the official startup script runs both with `chrt 50 taskset -c 6,7`. No service was stopped, restarted, attached with a debugger, or given a goal. Newly captured `pcl_pass_grid` SHA-256: `a51736b0b86bb6a202a915f6bb7c22b9ddf50162efc7bab9823f163ddfee68a9`. Machine-readable evidence: `nos_20261013/manifest.json`; local raw export `/tmp/nos_planner_audit_20261013.tgz`. Its AArch64 disassembly is saved locally as `pcl-pass-grid-disassembly.txt` (excluded from Git).
+Read-only SSH verified the running NOS files against the captured `localPlanner` and both YAML hashes above. Processes 2877/2878 were `localPlanner` / `pcl_pass_grid`; the official startup script runs both with `chrt 50 taskset -c 6,7`. No service was stopped, restarted, attached with a debugger, or given a goal. Newly captured `pcl_pass_grid` SHA-256: `a51736b0b86bb6a202a915f6bb7c22b9ddf50162efc7bab9823f163ddfee68a9`. Machine-readable evidence: `nos_20261013/manifest.json`; local raw export `/tmp/nos_planner_audit_20261013.tgz`.
 
 ### Three distinct sizes
 
@@ -75,4 +75,4 @@ The real captured-cloud replay reported 117 normal outputs, 3 freshness holds an
 
 Read-only inspection found running `passable_area` and `accumulate_cloud`, but the NOS local-planner launch script currently selects `pcl_pass_grid`; its `pcl_remove` alternative for `/impassable_area` is commented out. The alternative binary contains `/impassable_area` input and `/NAV_POINTS` output. The passability configuration is 8×8 m at 5 cm and includes separate slope/roughness/step costs. These configured thresholds are not physical climbing guarantees.
 
-The separate `handler` accepts `/HANDLE_STEER` x/y/yaw commands and `/cloud_nav`. Disassembly confirms `SetOoaParamCallback` reads `StairOA` at 0x9bfb0, and `CheckStairOaEnabledState` sends the desired boolean as command 0/1 through `/HEIGHT_MAP_STAIR_OA_ENABLE` (0x9c250–0x9c284). This proves a stair obstacle-avoidance interface; it does **not** prove automatic stair gait selection or autonomous ascent. The service implementation and its classification semantics have not been recovered. The original local-planner integration alone therefore cannot be described as complete NOS stair support. Configuration, function disassembly and hashes are retained in `nos_stairs_20261014/`.
+The separate `handler` accepts `/HANDLE_STEER` x/y/yaw commands and `/cloud_nav`. `SetOoaParamCallback` reads `StairOA`, and `CheckStairOaEnabledState` sends the desired boolean as command 0/1 through `/HEIGHT_MAP_STAIR_OA_ENABLE`. This proves a stair obstacle-avoidance interface; it does **not** prove automatic stair gait selection or autonomous ascent. The service implementation and its classification semantics have not been recovered. The original local-planner integration alone therefore cannot be described as complete NOS stair support. Configuration, findings and hashes are retained in `nos_stairs_20261014/`.
