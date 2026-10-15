@@ -1,0 +1,12 @@
+{
+  "deployed_at": "20261015_140616",
+  "backup": "/home/nvidia/scanplanner_test/se2_nvblox_surface_shadow/official_first_integration/backups/localization_recovery_20261015_140616",
+  "sha256": {
+    "official_first_integration/reference_alignment.py": "63fb874a925bc31ec10692bef230250136394f0b04f4a7baeb79e3f074e7a10a",
+    "official_first_integration/tests/test_reference_alignment.py": "b02b86781b91e45c5533f5e24f3070ff726b3dcca7eebfc8a325cefa05e249e8",
+    "official_first_integration/README.md": "2d82b0c2594662b278aa946f86068111c96354d192f9ad057ed838c1dd3a6c7c"
+  },
+  "running_session_restarted": false,
+  "requires_restart": true,
+  "automatic_motion": false
+}

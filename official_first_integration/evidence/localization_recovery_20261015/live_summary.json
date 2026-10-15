@@ -1,0 +1,12 @@
+{
+  "tracking_frames": 60,
+  "states": {
+    "localizing": 6,
+    "tracking": 60
+  },
+  "first_tracking_seconds": 3.804417936,
+  "final_state": "tracking",
+  "source_age_p95": 0.4232124924659729,
+  "compute_ms_p95": 181.3988741995672,
+  "scope": "Live inputs; remapped diagnostic outputs only, no navigation or motion publication"
+}

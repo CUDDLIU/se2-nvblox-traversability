@@ -1,0 +1,13 @@
+{
+  "README.md": "03cf19d29df02de938a8ec105b1317323f48596bc4a557270d980cdcb9a7b2e6",
+  "README.zh-CN.md": "a419f9ff7cf6bc311a987961eb1cb5c97dc39aa5e601070b176874c7c3c2716c",
+  "official_first_integration/README.md": "46af72fda4d1c6976758f6baf6cb29fc829c9a64d133642acc1767b2f607bc1d",
+  "official_first_integration/initial_alignment.py": "058b1a47d52db9cc8edb10973d8ed27825e3ffed6a3d143d30c132a971cfba63",
+  "official_first_integration/reference_alignment.py": "4ddd39be4f9a88b5cda2de3004057cf338f02f2d950aa478de362a495602e190",
+  "official_first_integration/localization.py": "66e71f946c02db2a6326c9edf44d917cb086414fdeca45c9979110cf2fa6d4ed",
+  "official_first_integration/run.py": "e108cb0b7a84d3b7b5646f29d8ea5c60d271b7f701012a77085bf598b3c12f17",
+  "official_first_integration/tests/test_initial_alignment.py": "299a014dc0d4878630f073362b0f07e2ff257227c7c86972a17eb4e4395352dd",
+  "official_first_integration/tests/test_reference_alignment.py": "b02b86781b91e45c5533f5e24f3070ff726b3dcca7eebfc8a325cefa05e249e8",
+  "official_first_integration/tests/test_localization_transport.py": "00cd80485b895a1ed197d20e7f9a9810966db8dde5ce2a8005c8e0619dce42d1",
+  "scanplanner_integration/localization_node.py": "7f37512f940b8f73bce908e38fca50b6fdda8c3601b72d04c119e61733c1aaa8"
+}

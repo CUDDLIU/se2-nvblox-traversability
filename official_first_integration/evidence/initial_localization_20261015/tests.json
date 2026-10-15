@@ -1,0 +1,8 @@
+{
+  "local_initial_and_reference": 9,
+  "local_transport": 3,
+  "jetson_initial_and_reference": 9,
+  "jetson_transport": 3,
+  "passed": true,
+  "scope": "initialization, bounded recovery, geometry ambiguity and transport regression"
+}

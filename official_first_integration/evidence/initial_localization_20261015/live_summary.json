@@ -1,0 +1,54 @@
+{
+  "output": "/tmp/initial_localization_long_20261015/live_145531/localization",
+  "tracking_frames": 66,
+  "states": {
+    "tracking": 66,
+    "localizing": 9
+  },
+  "first_tracking_seconds": 30.653605722,
+  "final_state": "tracking",
+  "source_age_p95": 0.4818471670150757,
+  "compute_ms_p95": 234.7547977492468,
+  "scope": "Live unknown-pose initialization; diagnostic output topics only; no robot commands or prior pose",
+  "last_tracking": {
+    "state": "tracking",
+    "reason": "Live surfaces matched to saved mesh",
+    "time_ns": 1792047402433113842,
+    "frame": "se2_scan_map",
+    "source_frame": "nvblox_odom",
+    "mesh_sha256": "fefa46ce1e3226914c568d108dd1ff98418ec9af185b3640e7d3be9d47df40b4",
+    "translation": [
+      -1.4706635926731637,
+      0.6243639784233088,
+      0.018563793748210402
+    ],
+    "quaternion_xyzw": [
+      0.007904389490558932,
+      0.00032745767553688757,
+      0.8212098824026611,
+      -0.5705714174776544
+    ],
+    "roll_pitch_yaw_deg": [
+      -0.48604427210243367,
+      -0.7652652704310334,
+      -110.41409841817004
+    ],
+    "quality": {
+      "points": 882,
+      "median_m": 0.04804560759207926,
+      "clipped_mean_m": 0.08189482871940733,
+      "inliers_15cm": 0.8163265306122449,
+      "structure_points": 477,
+      "structure_inliers_15cm": 0.8637316561844863,
+      "vertex_median_m": 0.09620700941418056,
+      "vertex_inliers_15cm": 0.7789115646258503,
+      "distance_metric": "bounded_reference_surface",
+      "surface_supported_fraction": 0.481859410430839,
+      "correction_at_body_m": 0.017539443538048937,
+      "correction_rotation_rad": 0.001395284243709414,
+      "compute_ms": 244.42761199861707,
+      "input_kind": "raw_deskew"
+    },
+    "source_age_s": 0.4307212829589844
+  }
+}

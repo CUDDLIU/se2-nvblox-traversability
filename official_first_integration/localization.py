@@ -25,15 +25,19 @@ def main():
     from scipy.spatial.transform import Rotation
     ap=argparse.ArgumentParser();ap.add_argument('map');ap.add_argument('--output',required=True)
     ap.add_argument('--pose-cache',type=Path,required=True);ap.add_argument('--initial-map-pose',type=float,nargs=4)
+    ap.add_argument('--recording-start',action='store_true',help='Restrict initialization to the recording start instead of the whole map')
     args=ap.parse_args()
+    if args.recording_start and args.initial_map_pose:ap.error('choose --recording-start or --initial-map-pose')
     class RememberedLocalization(Localization):
         def __init__(self):
             self.last_write=0.
             super().__init__(args.map,args.output,args.initial_map_pose)
-            old=self.aligner;self.aligner=ReferenceAligner(args.map)
+            old=self.aligner;self.aligner=ReferenceAligner(args.map,global_search=not args.recording_start and args.initial_map_pose is None)
             self.aligner.anchor=old.anchor
             if hasattr(old,'seed_yaw'):self.aligner.seed_yaw=old.seed_yaw
             self.get_logger().info('Localization reference: '+self.aligner.reference_kind)
+            self.state('localizing','Searching the recorded map with measured structure' if self.aligner.global_search is not None else 'Matching measured surfaces near the selected initial pose',
+                       initial_search_scope='whole_map' if self.aligner.global_search is not None else 'near_seed')
         def odom(self,msg):
             super().odom(msg)
             now=time.monotonic();stamp=msg.header.stamp.sec+msg.header.stamp.nanosec/1e9

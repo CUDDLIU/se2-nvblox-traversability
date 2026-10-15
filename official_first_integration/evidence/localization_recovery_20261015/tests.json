@@ -1,0 +1,9 @@
+{
+  "local_reference_tests": 5,
+  "local_alignment_tests": 6,
+  "local_transport_tests": 2,
+  "jetson_reference_tests": 5,
+  "jetson_alignment_tests": 6,
+  "jetson_transport_tests": 2,
+  "passed": true
+}

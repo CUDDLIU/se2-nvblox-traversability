@@ -11,8 +11,19 @@ from localization_node import Localization
 from alignment import MapAligner
 from runtime import cloud_message
 from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import PointCloud2,PointField
+from array import array
 spec=importlib.util.spec_from_file_location('latency_transport',ROOT/'official_first_integration/native/adapter.py');transport=importlib.util.module_from_spec(spec);spec.loader.exec_module(transport)
 class LocalizationTransport(unittest.TestCase):
+ def test_global_initialization_can_observe_far_structure_without_changing_default_crop(self):
+  dtype=np.dtype([('x','<f4'),('y','<f4'),('z','<f4'),('timestamp','<f8')])
+  points=np.zeros(24,dtype=dtype);points['x'][::6]=[3.,5.,9.,.2];points['timestamp']=10.
+  cloud=PointCloud2();cloud.header.frame_id='lidar_link';cloud.height=1;cloud.width=len(points)
+  cloud.point_step=dtype.itemsize;cloud.row_step=cloud.width*cloud.point_step
+  cloud.fields=[PointField(name=name,offset=dtype.fields[name][1],datatype=8 if name=='timestamp' else 7,count=1) for name in dtype.names]
+  cloud.data=array('B',points.tobytes())
+  np.testing.assert_allclose(Localization.unpack(None,cloud)[:,0],[3.])
+  np.testing.assert_allclose(Localization.unpack(N(aligner=N(input_range=8.)),cloud)[:,0],[3.,5.])
  def test_lost_tracker_invalidates_route_and_reacquires_near_propagated_pose(self):
   class Failed:
    def done(self):return True

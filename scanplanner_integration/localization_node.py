@@ -69,7 +69,8 @@ class Localization(Node):
             'offsets':[f[k].offset for k in ['x','y','z','timestamp']],'itemsize':m.point_step})
         a=np.ndarray((m.height,m.width),dtype=dtype,buffer=m.data,strides=(m.row_step,m.point_step)).reshape(-1)[::6]
         raw=np.column_stack([a[k] for k in ['x','y','z','timestamp']]);radius=np.linalg.norm(raw[:,:3],axis=1)
-        raw=raw[(radius>.7)&(radius<4.)]
+        limit=getattr(getattr(self,'aligner',None),'input_range',4.)
+        raw=raw[(radius>.7)&(radius<limit)]
         return raw
 
     def fit(self,messages,poses,previous,generation):
@@ -119,7 +120,7 @@ class Localization(Node):
                             translation=t.tolist(),quaternion_xyzw=quaternion.tolist(),yaw=float(Rotation.from_matrix(y).as_euler('xyz')[2]),quality=quality,time_ns=time.time_ns())
                         tmp=self.cache.with_suffix('.tmp');tmp.write_text(json.dumps(cache,indent=2));tmp.replace(self.cache)
                         self.state('tracking','Live surfaces matched to saved mesh',translation=t.tolist(),quaternion_xyzw=quaternion.tolist(),roll_pitch_yaw_deg=Rotation.from_matrix(y).as_euler('xyz',degrees=True).tolist(),quality=quality,source_age_s=age)
-                    else:self.state('localizing','Waiting for five stable fresh map matches before publishing pose',stable_matches=self.stable,source_age_s=age)
+                    else:self.state('localizing','Waiting for five stable fresh map matches before publishing pose',stable_matches=self.stable,source_age_s=age,quality=quality)
             except (ValueError,RuntimeError) as exc:
                 self.stable=0
                 if not self.good_at:self.transform=None

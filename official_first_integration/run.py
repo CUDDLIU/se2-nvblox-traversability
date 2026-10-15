@@ -62,7 +62,7 @@ def main():
     p.add_argument('--map',type=Path,default=ROOT/'scanplanner_integration/maps/20261012_confirmed_scene')
     p.add_argument('--execute',action='store_true');p.add_argument('--enter-navigation',action='store_true')
     p.add_argument('--initial-map-pose',type=float,nargs=4)
-    p.add_argument('--recording-start',action='store_true',help='Search near recording start (the default; retained for command compatibility)')
+    p.add_argument('--recording-start',action='store_true',help='Restrict initialization to the recording start; default searches the whole recorded map')
     p.add_argument('--trace-near-body',action='store_true',help='Trace all near-body return outcomes; default records newly occupied near-body cells only')
     p.add_argument('--no-rviz',action='store_true');p.add_argument('--duration',type=float,default=0)
     args=p.parse_args()
@@ -88,9 +88,9 @@ def main():
     os.environ['FASTRTPS_DEFAULT_PROFILES_FILE']=session_transport_profile(
         Path.home()/'.config/fastdds/eno1.xml',out/'fastdds.xml')
     pose_cache=HERE/'runtime/last_map_pose.json'
-    seed_source='explicit' if args.initial_map_pose else 'recording_start'
-    # The last matched pose is diagnostic output only. Relocation between
-    # sessions must not silently center the next search on the old endpoint.
+    seed_source='explicit' if args.initial_map_pose else 'recording_start' if args.recording_start else 'whole_map'
+    # The last session's pose is diagnostic only; default initialization must
+    # independently find the robot in the recorded map after manual relocation.
     remaps=session_remaps(session)
     children={};logs=[];running=True
     def stop(*_):
@@ -112,7 +112,7 @@ def main():
         report['inputs']=ensure_live_inputs(ROOT,out,spawn,lambda:running,require_registered=args.local_backend=="source")
         if not running:return
         spawn('robot',robot_command(args.execute,args.enter_navigation,out/'telemetry',remaps,official=args.local_backend=='official',source=args.local_backend=='source'))
-        spawn('localization',[sys.executable,str(HERE/'localization.py'),str(args.map),'--output',str(out/'localization'),'--pose-cache',str(pose_cache),*(['--initial-map-pose',*map(str,args.initial_map_pose)] if args.initial_map_pose else [])])
+        spawn('localization',[sys.executable,str(HERE/'localization.py'),str(args.map),'--output',str(out/'localization'),'--pose-cache',str(pose_cache),*(['--initial-map-pose',*map(str,args.initial_map_pose)] if args.initial_map_pose else ['--recording-start'] if args.recording_start else [])])
         from robot_visual import description
         model_params=out/'robot_model.params.json'
         model_params.write_text(json.dumps({'first_robot_state_publisher':{'ros__parameters':{'robot_description':description(),'publish_frequency':30.}}}))
