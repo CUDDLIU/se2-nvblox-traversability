@@ -6,11 +6,11 @@
 
 Build a static map from a complete sensor bag, then click a **3D surface point** in RViz to plan through stairs between floors. The start defaults to the robot's recorded final pose, projected onto the floor. Outputs are a geometric path and headings; no robot motion commands are sent.
 
-The current live execution chain uses the independent **FIRST-based local planner** in [official_first_integration](../official_first_integration/README.md). This page describes the saved-map/bag planning workflow; live navigation takes its start from current map-aligned odometry. The earlier [ScanPlanner interface investigation](scanplanner-integration.md) remains available for reference.
+Cross-floor live execution is integrated through the **source local planner** in [official_first_integration](../official_first_integration/README.md): ASA publishes flat/upstairs/downstairs segments with navigation attributes, and the execution chain switches perception, parameters and gait. Live navigation starts from current map-aligned odometry; the saved-map viewer described below uses the recorded endpoint. Route refinement prefers 0.45 m clearance (weight 6) and applies a non-green-region penalty (weight 4). Local lookahead is 1.5 m.
 
 ### Relation to SE(2) NavMesh
 
-This is an independent implementation based on [SE(2) NavMesh](https://se2-navmesh.github.io/) and [its paper](https://se2-navmesh.github.io/static/SE2_anonymous.pdf), particularly the map representation and the A*–String Pulling–A* (ASA) pipeline in Section V-C. At implementation time the project site listed the authors' code as forthcoming. This repository is not their official release or an exact reproduction of their experiments.
+This is an independent implementation based on [SE(2) NavMesh](https://se2-navmesh.github.io/) and [its paper](https://se2-navmesh.github.io/static/SE2_anonymous.pdf), particularly the map representation and the A*–String Pulling–A* (ASA) pipeline in Section V-C. This repository is not their official release or an exact reproduction of their experiments.
 
 | Paper concept | Implementation |
 | --- | --- |
@@ -62,10 +62,13 @@ All points use the saved frame, currently `nvblox_odom`.
 | `/se2_global/goal_pose` | `geometry_msgs/PoseStamped` | Optional exact goal heading |
 | `/se2_global/pick_start`, `/se2_global/reset_start` | `std_srvs/Trigger` | Use the next click as start / restore bag end |
 | `/se2_global/path` | `nav_msgs/Path` | Floor XYZ and body yaw for every checked path state |
+| `/se2_global/navigation_route` | `std_msgs/String` | Live route with terrain segments and navigation attributes, isolated per execution session |
 | `/se2_global/status` | `std_msgs/String` | JSON status, timing, path metrics, or failure reason |
 | `/se2_global/{mesh,traversability,polygons,path_markers,query_markers}` | `visualization_msgs/MarkerArray` | Retained static map and query visualization |
 
-### Validation and scope
+### Recorded map-query evidence — September 30, 2026
+
+For the prepared-graph and persistent-cache implementation, see [ASA query latency](asa-latency.md). The following measurements describe the dated map-query run.
 
 ![A real RViz click produces a cross-floor route / RViz 点选跨楼层路径](media/global-planning.png)
 
@@ -84,11 +87,11 @@ The map describes the final reconstructed static geometry. Later obstacles, odom
 
 整包重建得到静态全局通行图后，可在 RViz 点击具有真实高度的地面目标，通过楼梯进行跨楼层规划。默认起点为 **bag 录制终点在地面的投影**；输出包含位置与朝向，不发送运动控制指令。
 
-当前实机执行采用 [official_first_integration](../official_first_integration/README.md) 中基于 FIRST 的独立局部规划器。本页描述保存地图和 bag 全局规划流程；实机起点来自当前地图对齐里程计。早期 [ScanPlanner 接口核查](scanplanner-integration.md#中文说明) 保留供参考，跨楼层实机闭环尚未完成验收。
+跨楼层实机执行已接入 [official_first_integration](../official_first_integration/README.md) 的源码局部规划器：ASA 发布平地／上楼／下楼分段及导航属性，执行链按段切换感知、参数和步态。实机起点来自当前地图对齐里程计；下文保存地图查看器使用录制终点。路线采用 0.45 米净空偏好（权重 6）及非绿色区域软代价（权重 4），局部前瞻为 1.5 米。
 
 ### 与论文的对应关系
 
-实现依据 [SE(2) NavMesh 项目](https://se2-navmesh.github.io/)及[论文](https://se2-navmesh.github.io/static/SE2_anonymous.pdf)，采用多层高度场、朝向相关多边形图，以及 V-C 节的 **A* → 三维路径拉直 → 朝向 A***。平移和旋转代价对应公式 27–28。官网当时尚未公开作者代码，因此这是独立实现，并非作者官方代码或实验结果的完整复现。
+实现依据 [SE(2) NavMesh 项目](https://se2-navmesh.github.io/)及[论文](https://se2-navmesh.github.io/static/SE2_anonymous.pdf)，采用多层高度场、朝向相关多边形图，以及 V-C 节的 **A* → 三维路径拉直 → 朝向 A***。平移和旋转代价对应公式 27–28。本项目独立实现上述方法，并非作者官方代码或实验结果的完整复现。
 
 现有系统继续使用 nvblox 重建；论文使用 Voxblox。针对原算法已经支持的格内可行位置与非采样朝向，规划保留真实几何位姿。局部可行状态不会被扩大为整个格子或朝向区间都可行：拉直时保留这些受限位置，逐段检查运动扫过的机身；只有源格子具有完整扫掠足迹证明时才复用栅格可行性。拉直后的朝向优化失败或代价增加时，保留已检查的初始路径。
 
@@ -105,6 +108,8 @@ The map describes the final reconstructed static geometry. Later obstacles, odom
 静态图采用**构建时的参数**，现有实时／回放滑块不会自动改变它。其他 bag 可使用上方 `build_bag.sh` 命令整包构建；输出全部保存在该 bag 的 `global_plans/` 内，随 bag 一并删除或恢复。修改保存的 `terrain_config.yaml` 后，可用 `build.py mesh.npz` 重新分类作参数比较。
 
 ### 已验证的范围
+
+当前预构建搜索图和持久几何缓存的测量见 [ASA 规划延迟](asa-latency.md)。以下数值为 2026 年 9 月 30 日记录的地图查询。
 
 本次 326.63 秒 bag 生成 360,521 个 Mesh 三角形、9,976 个可通行跨度、5,879 个多边形和 11,440 个连接门户。录制终点到上层的实测查询完成三个 ASA 阶段，路径约 **47 米**，高度范围 **−0.68～5.69 米**。每段都有完整栅格证明或实际机身扫掠检查。Jetson 首次规划为 34.85 秒，缓存几何拒绝结果后的重复查询为 13.91 秒，详见[机器可读记录](validation/global-planning-20260930.json)。另一次实际 RViz 鼠标点选上层平台得到 50.6 米路径，最高 Z=6.34 米，耗时 15.42 秒。Jetson 已验证 ROS 路径发布、失败清空和再次规划；CPU 回归也覆盖了有／无楼梯连接的重叠楼层、断面、窄通道、非采样朝向与失效缓存。
 

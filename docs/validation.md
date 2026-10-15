@@ -1,5 +1,20 @@
 # Validation / 验证范围
 
+## Current navigation validation — October 15, 2026
+
+Cross-floor navigation is integrated from ASA terrain annotations through local perception, gait transactions and command output. The latest records cover:
+
+| Component | Recorded result | Scope |
+| --- | --- | --- |
+| Whole-map initialization | 30.65 s to tracking, 66 subsequent valid tracking updates | Live Jetson input, stationary, no pose hint or motion output |
+| Continuous-odometry recovery | 3.80 s to tracking, 60 subsequent valid tracking updates | Live Jetson input, stationary diagnostic run |
+| Localization regression | 9 initialization/reference tests plus 3 transport tests passed on workstation and Jetson | Matching, ambiguity, bounded corrections and route invalidation |
+| Stair navigation | 51 source tests, 23 ASA tests and 12-step ascent/descent software execution passed | Includes sensor interruption and cancellation; no physical contact model |
+
+See [initialization evidence](../official_first_integration/evidence/initial_localization_20261015/README.md), [recovery evidence](../official_first_integration/evidence/localization_recovery_20261015/README.md), and [stair execution evidence](../official_first_integration/evidence/source_20261014/stair_midflight/README.md).
+
+当前跨楼层规划与执行已完成接入。最新定位验证分别覆盖无初值启动和同里程计会话内恢复；静止诊断及软件闭环不能替代所有场景的运动可靠性评估。以下带日期的重建数据描述对应测试运行，不是当前实机导航的性能指标。
+
 ## Reproducible CPU checks
 
 Run the [quick start](../README.md#quick-start), then `bash scripts/test_core.sh`. The focused geometry suite includes 21 tests across:
@@ -40,6 +55,6 @@ The full demo was recorded the following day and is provided for visual inspecti
 
 构造测试可以在不连接机器人的情况下复现；实地回放结果来自已有验证记录。本仓库公开汇总指标和相关源码摘要，不分发原始 bag、轨迹或现场 Mesh。
 
-整包回放完成、传感器没有中途新增丢帧，并不意味着实时性或全路线连通性已经通过。当前精细判定的通行性结果约 1.93 Hz，最旧输入至结果的 P95 约 1.43 秒；性能目标尚未达到。门口三个固定快照均连通，但整栋建筑及全部楼梯的连续路线仍未完成验证。
+整包回放完成、传感器没有中途新增丢帧，并不意味着实时性或全路线连通性已经通过。该次精细判定的通行性结果约 1.93 Hz，最旧输入至结果的 P95 约 1.43 秒；该次运行未达到其性能目标。门口三个固定快照均连通；该记录没有覆盖整栋建筑和全部楼梯的连续路线。
 
 评价算法修改时，应在相同输入、参数、时间窗口和有效性范围下比较。历史区域的蓝色显示、Mesh 的发布频率或局部绿色数量，都不能单独代替有效通路和端到端延迟指标。

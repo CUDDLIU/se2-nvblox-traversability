@@ -2,7 +2,7 @@
 
 This guide documents the existing M20 deployment. The repository includes project source and deployment snapshots; it is not a complete robot image or a one-command installer for an unconfigured Jetson.
 
-本说明描述现有 M20 集成。发布操作没有修改机器人上的运行配置。仓库提供项目源码和部署入口快照，传感器、里程计及系统服务仍需要独立配置。
+本说明描述现有 M20 集成。仓库提供项目源码和部署入口快照，传感器、里程计及系统服务仍需要独立配置。
 
 ## Tested system
 
@@ -47,7 +47,7 @@ bash /home/nvidia/scanplanner_test/se2_terrain_check/start_after_boot.sh
 
 The command opens the tuner, prepares input diagnostics and network settings, starts the dedicated odometry/reconstruction chain, and opens RViz. It may request the local sudo password for existing robot/network services. It does not send motion commands.
 
-新增的 bag、地图、回放结果和日志全部放在项目目录内；无需在项目同级新建数据目录。旧的 `se2_terrain_check` 是现有部署入口，并非本次发布新增目录。
+新增的 bag、地图、回放结果和日志全部放在项目目录内；无需在项目同级新建数据目录。`se2_terrain_check` 是重建与调参入口。实机导航使用 `official_first_integration/start_live.sh`，见[实机导航与构建](../official_first_integration/README.md)。
 
 ## Build project-owned components
 

@@ -13,6 +13,12 @@
 
 当前默认回放实现位于 `terrain_variants/local_window`。算法保留每个格子内的多层表面，结合实际机身轮廓搜索可行位置与朝向；并非简单二维膨胀，也不会额外添加“门口补线”显示层。真实障碍、缺少支撑或顶部净空不足仍可使连接失效。
 
+## Live navigation pipeline
+
+The saved multilevel map feeds ASA route planning with clearance and region preferences. Each route carries flat/upstairs/downstairs segments. The source local planner uses those segments to select perception and navigation parameters, confirm the requested gait and follow the route with live obstacle input. Cross-floor execution is integrated within a connected saved map.
+
+Localization initializes across the recorded map with an 8 m observation range and competing-pose checks. Tracking uses a 4 m reference neighborhood; continuous-odometry recovery retains bounded corrections and fresh stability confirmation. The localization observation range is independent of local obstacle filtering. See [runtime configuration and interfaces](../official_first_integration/README.md).
+
 ## Feasible heading angle and color
 
 Each cell carries the sum of its feasible heading-interval widths, capped at `2π`. Color interpolation uses the square root of that fraction to make narrow intervals visible. A symmetric rectangular footprint counts both forward and reverse headings. An exact heading can form a zero-width feasible interval, so zero angular measure is not necessarily an empty feasible set.
@@ -23,7 +29,7 @@ Green requires the comfortable mask to cover every heading. Orange covers restri
 
 ## Configuration profiles
 
-The shipped **live** configuration and **replay** preset intentionally differ. `Config()` alone uses the earlier conservative defaults; use an explicit configuration for comparisons.
+The shipped **live** configuration and **replay** preset intentionally differ. `Config()` alone uses conservative defaults; use an explicit configuration for comparisons.
 
 | Parameter | Existing live snapshot | Default stair replay |
 | --- | ---: | ---: |
@@ -38,7 +44,7 @@ The shipped **live** configuration and **replay** preset intentionally differ. `
 
 The replay selection lives in [`replay_profiles.py`](../bag_tools/replay_profiles.py); explicit user values override the preset. The default LiDAR reconstruction uses 7 cm TSDF voxels, a four-voxel truncation band, mesh minimum weight 0.5, a 4 m integration range, deskewing, and body filtering. Optional dual-origin and weighting experiments are not enabled by this preset.
 
-实时启动保留原有的平地判据；楼梯重建预设使用 20 cm / 40°。这些是分析阈值，不代表机器人已经启用相应步态或具备对应运动能力。
+实时重建使用平地分析判据；楼梯重建预设使用 20 cm / 40°。这些参数控制几何分析。实机导航的平地／楼梯步态由 ASA 地形分段和局部执行事务驱动，见[实机导航](../official_first_integration/README.md)。
 
 ## Local validity
 
@@ -63,7 +69,7 @@ Outside this window, cells are retained for historical display. They are not a c
 
 Schema 2 cell rows use `[ix, iy, iz, physical_mask, comfortable_mask, feasible_angle_rad]`. Geometry consumers should also check validity and status; a marker's presence alone is not sufficient. The normal reconstruction frame is `nvblox_odom`.
 
-Live ROS domain: `0`; GUI replay: `73`; manual benchmark: `74`. The benchmark command is an integration tool, with its own earlier defaults. It does not implicitly select the current GUI profile.
+Live ROS domain: `0`; GUI replay: `73`; manual benchmark: `74`. The benchmark command is an integration tool, with its own explicit defaults. It does not implicitly select the current GUI profile.
 
 ## Source map
 
